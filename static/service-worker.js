@@ -1,4 +1,4 @@
-const CACHE = "unifix-shell-v4";
+const CACHE = "unifix-shell-v5";
 // Precache only assets that are public and never redirect — a single failed or
 // redirected (login-gated) request would abort the whole install.
 const SHELL = ["/offline", "/static/css/app.css", "/static/js/report.js",
@@ -29,7 +29,12 @@ self.addEventListener("fetch", (e) => {
   if (url.pathname === "/login" || url.pathname === "/logout"
       || url.pathname.startsWith("/admin")
       || url.pathname.endsWith("/data") || url.pathname.startsWith("/report/")
-      || url.pathname.startsWith("/photo/")) {
+      || url.pathname.startsWith("/photo/")
+      || url.pathname === "/" || url.pathname === "/profile"
+      || url.pathname === "/my-reports" || url.pathname === "/report"
+      || url.pathname === "/notices" || url.pathname === "/set-pin"
+      || url.pathname.startsWith("/grievance/")
+      || url.pathname.startsWith("/auth/")) {
     e.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }
