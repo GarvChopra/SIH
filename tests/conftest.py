@@ -17,6 +17,9 @@ for _k in ("DATABASE_URL", "GROQ_API_KEY", "RESEND_API_KEY", "IMAGEKIT_PRIVATE_K
            "ALLOW_PROD_DEMO_SEED", "SEED_DEMO", "FLASK_DEBUG",
            "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"):
     os.environ[_k] = ""
+# Pinned (not blanked) so the college-domain restriction tests are deterministic
+# regardless of what a real .env sets.
+os.environ["GOOGLE_ALLOWED_EMAIL_DOMAIN"] = "glbitm.ac.in"
 
 
 @pytest.fixture(autouse=True)

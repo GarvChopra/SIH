@@ -190,7 +190,14 @@ def google_callback():
             error="Your Google account's email address isn't verified. "
                   "Please verify it with Google and try again.",
         ), 401
-    return _finish_google_login(userinfo.get("email"), userinfo.get("name"))
+    email = (userinfo.get("email") or "").strip().lower()
+    domain = Config.GOOGLE_ALLOWED_EMAIL_DOMAIN
+    if domain and not email.endswith("@" + domain):
+        return render_template(
+            "login.html",
+            error=f"Please sign in with your official @{domain} college email address.",
+        ), 401
+    return _finish_google_login(email, userinfo.get("name"))
 
 
 @bp.post("/auth/google/mock-callback")

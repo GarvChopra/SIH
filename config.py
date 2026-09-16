@@ -42,6 +42,11 @@ class Config:
     IMAGEKIT_PRIVATE_KEY = os.environ.get("IMAGEKIT_PRIVATE_KEY", "").strip()
     GOOGLE_OAUTH_CLIENT_ID     = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "").strip()
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
+    # Real Google sign-ins (not the dev-only mock) are restricted to this email
+    # domain — employees must use their official college account. Empty disables
+    # the check. Does not affect the mock login, which is unreachable in
+    # production regardless.
+    GOOGLE_ALLOWED_EMAIL_DOMAIN = os.environ.get("GOOGLE_ALLOWED_EMAIL_DOMAIN", "glbitm.ac.in").strip().lower()
     # Groq: qwen3.6-27b is multimodal (text + image), so one model covers both paths.
     GROQ_MODEL_TEXT   = os.environ.get("GROQ_MODEL_TEXT", "qwen/qwen3.6-27b").strip()
     GROQ_MODEL_VISION = os.environ.get("GROQ_MODEL_VISION", "qwen/qwen3.6-27b").strip()

@@ -123,12 +123,22 @@ def _stub_google_client(monkeypatch, fn):
 
 def test_google_callback_happy_path_logs_in(client, monkeypatch):
     _configure_google(monkeypatch)
-    token = {"userinfo": {"email": "real.prof@gmail.com", "name": "Real Prof", "email_verified": True}}
+    token = {"userinfo": {"email": "real.prof@glbitm.ac.in", "name": "Real Prof", "email_verified": True}}
     _stub_google_client(monkeypatch, lambda: token)
     r = client.get("/auth/google/callback")
     assert r.status_code == 302 and r.headers["Location"] == "/"
     assert client.get("/my-reports/data").status_code == 200   # session cookie is live
-    assert users.get_by_username("real.prof@gmail.com") is not None
+    assert users.get_by_username("real.prof@glbitm.ac.in") is not None
+
+
+def test_google_callback_rejects_email_outside_college_domain(client, monkeypatch):
+    _configure_google(monkeypatch)
+    token = {"userinfo": {"email": "someone@gmail.com", "name": "X", "email_verified": True}}
+    _stub_google_client(monkeypatch, lambda: token)
+    r = client.get("/auth/google/callback")
+    assert r.status_code == 401
+    assert b"glbitm.ac.in" in r.data
+    assert users.get_by_username("someone@gmail.com") is None
 
 
 def test_google_callback_rejects_unverified_email(client, monkeypatch):
