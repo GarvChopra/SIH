@@ -1,10 +1,29 @@
 """Auth blueprint: login / logout / token refresh / forced PIN change."""
-from flask import Blueprint, g, make_response, redirect, render_template, request, url_for
+from authlib.integrations.flask_client import OAuth
+from flask import Blueprint, abort, g, make_response, redirect, render_template, request, url_for
 
 from config import Config
 from services import auth_service
 
 bp = Blueprint("auth", __name__, template_folder="../../templates")
+
+oauth = OAuth()
+
+
+def init_google_oauth(app):
+    """Register Google as an OAuth provider. No-op when credentials aren't
+    configured — google_login() below then serves the dev-only mock picker
+    instead of a real Google redirect."""
+    if not Config.google_oauth_configured():
+        return
+    oauth.init_app(app)
+    oauth.register(
+        name="google",
+        client_id=Config.GOOGLE_OAUTH_CLIENT_ID,
+        client_secret=Config.GOOGLE_OAUTH_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
 
 _ACCESS, _REFRESH = "up_access", "up_refresh"
 
@@ -117,3 +136,39 @@ def refresh():
         return _clear_cookies(make_response({"error": result.error}, 401))
     resp = make_response({"ok": True, "role": result.user["role"]})
     return _set_cookies(resp, result.access_token, result.refresh_token)
+
+
+def _finish_google_login(email: str, name: str):
+    result = auth_service.login_with_google(email, name)
+    if not result.success:
+        return render_template("login.html", error=result.error), 401
+    resp = make_response(redirect("/"))
+    return _set_cookies(resp, result.access_token, result.refresh_token, remember=True)
+
+
+@bp.get("/auth/google/login")
+def google_login():
+    if g.get("current_user"):
+        return redirect("/admin" if g.current_user["role"] == "admin" else "/")
+    if not Config.google_oauth_configured():
+        if Config.is_production():
+            abort(404)
+        return render_template("auth/google_mock.html")
+    redirect_uri = url_for("auth.google_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@bp.get("/auth/google/callback")
+def google_callback():
+    if not Config.google_oauth_configured():
+        abort(404)
+    token = oauth.google.authorize_access_token()
+    userinfo = token.get("userinfo") or {}
+    return _finish_google_login(userinfo.get("email"), userinfo.get("name"))
+
+
+@bp.post("/auth/google/mock-callback")
+def google_mock_callback():
+    if Config.is_production() or Config.google_oauth_configured():
+        abort(404)
+    return _finish_google_login(request.form.get("email"), request.form.get("name"))

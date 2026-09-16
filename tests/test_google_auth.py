@@ -58,3 +58,43 @@ def test_pin_login_still_works_for_admin(memstore):
     users.create("boss", "Boss", "admin", hash_pin("0000"))
     result = auth_service.login("boss", "0000")
     assert result.success is True
+
+
+def test_google_login_route_shows_dev_mock_when_not_configured(client):
+    r = client.get("/auth/google/login")
+    assert r.status_code == 200
+    assert b'action="/auth/google/mock-callback"' in r.data
+
+
+def test_google_mock_callback_creates_account_and_logs_in(client):
+    r = client.post("/auth/google/mock-callback",
+                    data={"email": "mock.new@gmail.com", "name": "Mock New"})
+    assert r.status_code == 302 and r.headers["Location"] == "/"
+    assert client.get("/my-reports/data").status_code == 200   # session cookie is live
+    assert users.get_by_username("mock.new@gmail.com") is not None
+
+
+def test_google_mock_callback_reuses_existing_account(client):
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "ignored"})
+    me = client.get("/profile").data
+    assert b"Prof. Meera Rao" in me   # the seeded prof.rao row, not a new one
+
+
+def test_google_mock_callback_404s_when_google_is_configured(client, monkeypatch):
+    from config import Config
+    monkeypatch.setattr(Config, "GOOGLE_OAUTH_CLIENT_ID", "id123")
+    monkeypatch.setattr(Config, "GOOGLE_OAUTH_CLIENT_SECRET", "secret123")
+    r = client.post("/auth/google/mock-callback", data={"email": "x@gmail.com", "name": "X"})
+    assert r.status_code == 404
+
+
+def test_google_mock_callback_404s_in_production(client, monkeypatch):
+    from config import Config
+    monkeypatch.setattr(Config, "APP_ENV", "production")
+    r = client.post("/auth/google/mock-callback", data={"email": "x@gmail.com", "name": "X"})
+    assert r.status_code == 404
+
+
+def test_pin_login_route_rejects_reporter(client):
+    r = client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    assert r.status_code == 401
