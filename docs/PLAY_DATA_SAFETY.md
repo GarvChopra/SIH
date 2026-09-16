@@ -19,15 +19,22 @@ enabled) before submitting.
 
 | Type | Collected | Shared | Purpose | Optional? |
 |---|---|---|---|---|
-| Name | Yes | No | App functionality (identify who reported an issue) | Required (set by administrator) |
-| Email address | Yes | No | App functionality (status notifications) | Optional |
+| Name | Yes | No | App functionality (identify who reported an issue) | Required — for employees, taken from their Google account on first sign-in |
+| Email address | Yes | No | App functionality (account identifier for employees, status notifications) | **Required for employees** (it is their account identifier — see Google Sign-In below); not collected for the administrator account |
 | User IDs (username) | Yes | No | Account management | Required |
 | Other info (department) | Yes | No | App functionality (routing / analytics) | Optional |
 
-> PIN: stored only as a bcrypt hash, never transmitted or stored in readable
-> form. Google's guidance treats credentials as not "collected" when only a hash
-> is retained for authentication — declare under **not collected** or note the
-> hash. Do **not** declare the PIN as a shared data type.
+> **Google Sign-In**: employees authenticate via Google Sign-In (a third-party
+> identity provider). The app receives only the employee's name, email address
+> and email-verification status from Google — never a password. Declare Google
+> as an authentication provider / third-party SDK as applicable on the Data
+> Safety form.
+>
+> PIN: the administrator account only (employees no longer have one) — stored
+> only as a bcrypt hash, never transmitted or stored in readable form. Google's
+> guidance treats credentials as not "collected" when only a hash is retained
+> for authentication — declare under **not collected** or note the hash. Do
+> **not** declare the PIN as a shared data type.
 
 ### Photos and videos
 
@@ -61,6 +68,7 @@ enabled) before submitting.
 
 | Recipient | Data | Condition |
 |---|---|---|
+| Google (Sign-In / OAuth) | Nothing sent to Google beyond the standard OAuth request; Google returns name, email and email-verification status to the app | Always, for employee authentication, once `GOOGLE_OAUTH_CLIENT_ID`/`SECRET` are set. This is an authentication provider, not a data-sharing recipient. |
 | Groq, Inc. (AI inference) | Issue description text + attached photo | Only if `GROQ_API_KEY` set |
 | Resend (transactional email) | Recipient email address + report reference | Only if `RESEND_API_KEY` set |
 | Cloudflare R2 / AWS S3 (photo storage) | Issue photos | Only if `R2_*` / `S3_*` set. This is storage-processor, not "sharing". |

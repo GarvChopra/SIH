@@ -104,3 +104,50 @@ def test_login_page_offers_google_for_employees_not_pin(client):
     html = client.get("/login").data
     assert b'href="/auth/google/login"' in html
     assert b'id="admin-block" hidden' in html
+
+
+# ── real (non-mock) OAuth callback path ──────────────────────────────────────
+
+def _configure_google(monkeypatch):
+    from config import Config
+    monkeypatch.setattr(Config, "GOOGLE_OAUTH_CLIENT_ID", "id123")
+    monkeypatch.setattr(Config, "GOOGLE_OAUTH_CLIENT_SECRET", "secret123")
+
+
+def _stub_google_client(monkeypatch, fn):
+    from types import SimpleNamespace
+
+    from blueprints.auth import oauth
+    monkeypatch.setattr(oauth, "google", SimpleNamespace(authorize_access_token=fn), raising=False)
+
+
+def test_google_callback_happy_path_logs_in(client, monkeypatch):
+    _configure_google(monkeypatch)
+    token = {"userinfo": {"email": "real.prof@gmail.com", "name": "Real Prof", "email_verified": True}}
+    _stub_google_client(monkeypatch, lambda: token)
+    r = client.get("/auth/google/callback")
+    assert r.status_code == 302 and r.headers["Location"] == "/"
+    assert client.get("/my-reports/data").status_code == 200   # session cookie is live
+    assert users.get_by_username("real.prof@gmail.com") is not None
+
+
+def test_google_callback_rejects_unverified_email(client, monkeypatch):
+    _configure_google(monkeypatch)
+    token = {"userinfo": {"email": "unverified@gmail.com", "name": "X", "email_verified": False}}
+    _stub_google_client(monkeypatch, lambda: token)
+    r = client.get("/auth/google/callback")
+    assert r.status_code == 401
+    assert users.get_by_username("unverified@gmail.com") is None
+
+
+def test_google_callback_handles_oauth_error_gracefully(client, monkeypatch):
+    from authlib.integrations.base_client.errors import OAuthError
+    _configure_google(monkeypatch)
+
+    def _boom():
+        raise OAuthError(error="access_denied", description="user declined consent")
+
+    _stub_google_client(monkeypatch, _boom)
+    r = client.get("/auth/google/callback")
+    assert r.status_code == 401
+    assert b"try again" in r.data.lower()

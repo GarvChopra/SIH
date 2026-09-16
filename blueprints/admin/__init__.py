@@ -2,6 +2,7 @@
 import base64
 import csv
 import io as _io
+import secrets
 import time as _time
 
 from flask import Blueprint, Response, abort, g, redirect, render_template, request
@@ -477,11 +478,23 @@ def users_page():
         if role not in users.VALID_ROLES:
             return render_template("admin/users.html", users=users.list_all(),
                                    error=f"Invalid role {role!r}"), 400
+        # Reporters sign in with Google only — they get the same unusable,
+        # never-revealed placeholder pin_hash login_with_google's auto-create
+        # path uses, rather than requiring an "Initial PIN" nobody will ever
+        # type. Admin creation is untouched: a real PIN is still required.
+        if role == "reporter":
+            pin_hash = hash_pin(secrets.token_hex(16))
+        else:
+            pin = (request.form.get("pin") or "").strip()
+            if not pin:
+                return render_template("admin/users.html", users=users.list_all(),
+                                       error="Initial PIN is required for an admin account."), 400
+            pin_hash = hash_pin(pin)
         try:
             u = users.create(request.form["username"].strip(),
                              request.form["display_name"].strip(),
                              role,
-                             hash_pin(request.form["pin"].strip()),
+                             pin_hash,
                              department=request.form.get("department", "").strip() or None,
                              created_by=_actor())
         except ValueError as e:

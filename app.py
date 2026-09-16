@@ -33,6 +33,11 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["SECRET_KEY"] = Config.SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+    app.config["SESSION_COOKIE_SECURE"] = Config.is_production()
+    # Lax, not Strict: the return leg from accounts.google.com is a cross-site
+    # top-level navigation, and a Strict session cookie would be dropped on
+    # that redirect, breaking every Google sign-in.
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     # Render terminates TLS and forwards over plain HTTP internally. Without this,
     # url_for(..., _external=True) — used to build the Google OAuth redirect_uri —
     # would generate an http:// URL in production and Google would reject it as a
