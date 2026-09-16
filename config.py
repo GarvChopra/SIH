@@ -40,6 +40,8 @@ class Config:
     GROQ_API_KEY         = os.environ.get("GROQ_API_KEY", "").strip()
     RESEND_API_KEY       = os.environ.get("RESEND_API_KEY", "").strip()
     IMAGEKIT_PRIVATE_KEY = os.environ.get("IMAGEKIT_PRIVATE_KEY", "").strip()
+    GOOGLE_OAUTH_CLIENT_ID     = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+    GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
     # Groq: qwen3.6-27b is multimodal (text + image), so one model covers both paths.
     GROQ_MODEL_TEXT   = os.environ.get("GROQ_MODEL_TEXT", "qwen/qwen3.6-27b").strip()
     GROQ_MODEL_VISION = os.environ.get("GROQ_MODEL_VISION", "qwen/qwen3.6-27b").strip()
@@ -59,6 +61,10 @@ class Config:
     @classmethod
     def is_production(cls) -> bool:
         return cls.APP_ENV == "production"
+
+    @classmethod
+    def google_oauth_configured(cls) -> bool:
+        return bool(cls.GOOGLE_OAUTH_CLIENT_ID and cls.GOOGLE_OAUTH_CLIENT_SECRET)
 
     @classmethod
     def db_is_remote(cls) -> bool:
