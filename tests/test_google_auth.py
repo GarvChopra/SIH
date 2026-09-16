@@ -98,3 +98,9 @@ def test_google_mock_callback_404s_in_production(client, monkeypatch):
 def test_pin_login_route_rejects_reporter(client):
     r = client.post("/login", data={"username": "prof.rao", "pin": "1234"})
     assert r.status_code == 401
+
+
+def test_login_page_offers_google_for_employees_not_pin(client):
+    html = client.get("/login").data
+    assert b'href="/auth/google/login"' in html
+    assert b'id="admin-block" hidden' in html
