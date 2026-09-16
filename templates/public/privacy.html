@@ -9,15 +9,18 @@ what the UNIFIX campus infrastructure-reporting application collects and how it 
 <h2>Who this is for</h2>
 <p>UNIFIX is an internal tool for {{ glb.short }} staff to report campus infrastructure
 issues (electrical, plumbing, civil, mechanical, power, IT/network) and for the campus
-administration to track them to resolution. Accounts are created by the campus
-administrator; there is no public sign-up.</p>
+administration to track them to resolution. Employees sign in with their Google
+account — a first sign-in automatically creates an employee account from that Google
+account's name and email address; there is no separate registration form.
+Administrator accounts are created by the campus administrator directly and still
+sign in with a username and PIN.</p>
 
 <h2>What we collect</h2>
 <table>
   <tr><th>Data</th><th>Why</th></tr>
-  <tr><td>Your name, username, department and (optionally) contact email</td>
-      <td>To identify who reported an issue and to notify you of progress. Created by the administrator.</td></tr>
-  <tr><td>Your PIN</td><td>For sign-in. Stored only as a one-way bcrypt hash — it is never stored or logged in readable form.</td></tr>
+  <tr><td>Your name, email address and department</td>
+      <td>To identify who reported an issue and to notify you of progress. For employees, your name and email come from your Google account on first sign-in.</td></tr>
+  <tr><td>Google Sign-In</td><td>Employees authenticate with their Google account via Google Sign-In. UNIFIX never sees or stores your Google password — Google confirms your identity and shares only your name, email address and email-verification status. Administrator accounts use a username and PIN instead, stored only as a one-way bcrypt hash — never in readable form.</td></tr>
   <tr><td>Issue reports you submit: description text, photo, location (building / floor / room / facility), the priority you set, and when you noticed the issue</td>
       <td>To triage, route and resolve the issue, and to build campus-wide maintenance statistics.</td></tr>
   <tr><td>Timestamps and a history of actions taken on each report (status changes, assignments, resolution notes and photos)</td>

@@ -3,6 +3,7 @@ import logging
 import os
 
 from flask import Flask, g, redirect, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from domain.constants import GLB
@@ -32,6 +33,17 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["SECRET_KEY"] = Config.SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+    app.config["SESSION_COOKIE_SECURE"] = Config.is_production()
+    # Lax, not Strict: the return leg from accounts.google.com is a cross-site
+    # top-level navigation, and a Strict session cookie would be dropped on
+    # that redirect, breaking every Google sign-in.
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    # Render terminates TLS and forwards over plain HTTP internally. Without this,
+    # url_for(..., _external=True) — used to build the Google OAuth redirect_uri —
+    # would generate an http:// URL in production and Google would reject it as a
+    # redirect_uri mismatch. Only trust the proxy's scheme/host, not x_for, since
+    # existing rate-limiting reads request.remote_addr directly.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     from db import pool
     pool.init_db()
@@ -47,8 +59,9 @@ def create_app() -> Flask:
     from blueprints.public import bp as public_bp
     app.register_blueprint(public_bp)
 
-    from blueprints.auth import bp as auth_bp
+    from blueprints.auth import bp as auth_bp, init_google_oauth
     app.register_blueprint(auth_bp)
+    init_google_oauth(app)
 
     from blueprints.faculty import bp as faculty_bp
     app.register_blueprint(faculty_bp)

@@ -76,7 +76,7 @@ def test_invalid_window_falls_back_to_7d(client):
 
 
 def test_reports_blocked_for_non_admin(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.get("/admin/reports").status_code == 403
     assert client.get("/admin/reports.csv").status_code == 403
 

@@ -37,6 +37,6 @@ def test_get_app_page_is_public_and_has_install_action(client):
 
 
 def test_home_page_has_no_floating_install_button(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     r = client.get("/")
     assert b'id="pwa-install"' not in r.data

@@ -8,7 +8,7 @@ from services import grievance_service as gs
 
 def _report(client, user, desc, created_at=None, severity="low"):
     c = client.application.test_client()
-    c.post("/login", data={"username": user, "pin": "1234"})
+    c.post("/auth/google/mock-callback", data={"email": user, "name": user})
     out = c.post("/report", json={
         "description": desc, "location_type": "hostels", "location_label": "Hostels",
         "photo_b64": "aGVsbG8=", "photo_mime": "image/jpeg", "severity": severity}).get_json()

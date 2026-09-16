@@ -5,7 +5,7 @@ def test_admin_login_redirects_to_admin(client):
 
 
 def test_faculty_login_redirects_home(client):
-    r = client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    r = client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert r.status_code == 302
     assert r.headers["Location"] == "/"
 

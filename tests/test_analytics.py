@@ -56,6 +56,6 @@ def test_analytics_routes(client):
 
 
 def test_analytics_blocked_for_faculty(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.get("/admin/analytics").status_code == 403
     assert client.get("/admin/analytics.csv").status_code == 403

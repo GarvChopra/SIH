@@ -64,23 +64,33 @@ def test_cannot_deactivate_last_active_admin(client, app):
     assert users.get_by_username("admin")["is_active"] is True
 
 
-def test_admin_pin_reset_forces_change(client):
+def test_cannot_reset_a_reporters_pin(client):
     _login_admin(client)
     prof = users.get_by_username("prof.rao")
-    client.post(f"/admin/users/{prof['id']}/pin", data={"pin": "5678"})
-    assert users.get_by_id(prof["id"])["must_change_pin"] is True
+    r = client.post(f"/admin/users/{prof['id']}/pin", data={"pin": "5678"})
+    assert r.status_code == 400
+    assert users.get_by_id(prof["id"])["must_change_pin"] is False
 
 
-def test_flagged_user_is_confined_to_set_pin(client):
+def test_admin_pin_reset_forces_change(client, app):
+    with app.app_context():
+        second = users.create("sir2", "Sir Two", "admin", hash_pin("1234"))
     _login_admin(client)
-    prof = users.get_by_username("prof.rao")
-    client.post(f"/admin/users/{prof['id']}/pin", data={"pin": "5678"})
+    client.post(f"/admin/users/{second['id']}/pin", data={"pin": "5678"})
+    assert users.get_by_id(second["id"])["must_change_pin"] is True
+
+
+def test_flagged_admin_is_confined_to_set_pin(client, app):
+    with app.app_context():
+        second = users.create("sir2", "Sir Two", "admin", hash_pin("1234"))
+    _login_admin(client)
+    client.post(f"/admin/users/{second['id']}/pin", data={"pin": "5678"})
     c = client.application.test_client()
-    c.post("/login", data={"username": "prof.rao", "pin": "5678"})
+    c.post("/login", data={"username": "sir2", "pin": "5678"})
     # any normal page bounces to /set-pin
-    r = c.get("/my-reports")
+    r = c.get("/admin")
     assert r.status_code == 302 and "/set-pin" in r.headers["Location"]
     # setting a new PIN clears the flag
     c.post("/set-pin/submit", data={"new": "4321", "confirm": "4321"})
-    assert users.get_by_id(prof["id"])["must_change_pin"] is False
-    assert c.get("/my-reports").status_code == 200
+    assert users.get_by_id(second["id"])["must_change_pin"] is False
+    assert c.get("/admin").status_code == 200
