@@ -5,7 +5,9 @@ from services import grievance_service as gs
 
 
 def _login(c, u="prof.rao", p="1234"):
-    return c.post("/login", data={"username": u, "pin": p})
+    if u == "admin":
+        return c.post("/login", data={"username": u, "pin": p})
+    return c.post("/auth/google/mock-callback", data={"email": u, "name": u})
 
 
 def test_public_privacy_and_deletion_pages_render_without_login(client):

@@ -11,7 +11,9 @@ from services import auth_service
 
 
 def _login(c, u="prof.rao", p="1234"):
-    return c.post("/login", data={"username": u, "pin": p})
+    if u == "admin":
+        return c.post("/login", data={"username": u, "pin": p})
+    return c.post("/auth/google/mock-callback", data={"email": u, "name": u})
 
 
 def _expired_access(username, role="reporter", name="X"):

@@ -1,5 +1,5 @@
-def _login(client, u="prof.rao", p="1234"):
-    return client.post("/login", data={"username": u, "pin": p})
+def _login(client, u="prof.rao", p=None):
+    return client.post("/auth/google/mock-callback", data={"email": u, "name": u})
 
 
 # ── report flow ────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ def test_my_reports_data_scoped_to_reporter(client):
     code = data["grievances"][0]["code"]
 
     other = client.application.test_client()
-    other.post("/login", data={"username": "dr.iyer", "pin": "1234"})
+    other.post("/auth/google/mock-callback", data={"email": "dr.iyer", "name": "Dr Iyer"})
     assert other.get(f"/grievance/{code}").status_code == 403
 
 
@@ -102,7 +102,7 @@ def test_manifest_and_sw_served(client):
 
 
 def test_base_page_links_manifest(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     r = client.get("/")
     assert b"manifest.webmanifest" in r.data
     assert b"serviceWorker" in r.data

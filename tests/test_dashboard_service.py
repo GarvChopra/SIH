@@ -8,7 +8,7 @@ _KEYS = ("range_days", "range_label", "ranges", "kpis", "employees",
 def _report(client, user="prof.rao",
             desc="the ceiling fan is not working in this room again"):
     c = client.application.test_client()
-    c.post("/login", data={"username": user, "pin": "1234"})
+    c.post("/auth/google/mock-callback", data={"email": user, "name": user})
     return c.post("/report", json={
         "description": desc, "location_type": "academics_block", "block_no": "AB1",
         "floor": "2nd Floor", "room": "204", "photo_b64": "aGVsbG8=",

@@ -11,7 +11,7 @@ def _admin(client):
 def _report(client, user="prof.rao",
             desc="the ceiling fan is not working in this room"):
     c = client.application.test_client()
-    c.post("/login", data={"username": user, "pin": "1234"})
+    c.post("/auth/google/mock-callback", data={"email": user, "name": user})
     return c.post("/report", json={
         "description": desc, "location_type": "academics_block", "block_no": "Block B",
         "floor": "2nd Floor", "room": "204", "photo_b64": "aGVsbG8=",
@@ -81,7 +81,7 @@ def test_detail_shows_error_on_bad_transition(client):
 
 def test_faculty_cannot_post_admin_action(client):
     out = _report(client)
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.post(f"/admin/grievances/{out['code']}/verify").status_code == 403
 
 
@@ -156,7 +156,7 @@ def test_dashboard_shows_core_sections(client):
 
 
 def test_faculty_blocked_from_pulse(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.get("/admin/pulse").status_code == 403
 
 

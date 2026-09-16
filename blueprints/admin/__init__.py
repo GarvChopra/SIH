@@ -540,6 +540,8 @@ def user_pin(uid):
     u = users.get_by_id(uid)
     if not u:
         abort(404)
+    if u["role"] != "admin":
+        abort(400, description="Employees sign in with Google — there is no PIN to reset.")
     users.set_pin(uid, hash_pin(request.form["pin"].strip()))
     users.set_must_change_pin(uid, True)   # admin-reset PIN is temporary
     audit.add(_actor(), "user.reset_pin", target_type="user", target_id=uid,

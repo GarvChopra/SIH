@@ -14,17 +14,6 @@
   <div class="muted tiny">{{ u.contact or 'No contact on file' }}</div>
 </div>
 
-<h3>Change PIN</h3>
-<div class="card">
-  <form method="post" action="/profile/pin">
-    <label for="current">Current PIN</label>
-    <input id="current" name="current" type="password" inputmode="numeric" required>
-    <label for="new">New PIN (4–8 digits)</label>
-    <input id="new" name="new" type="password" inputmode="numeric" pattern="\d{4,8}" required>
-    <p style="margin-top:14px"><button class="btn" type="submit">Update PIN</button></p>
-  </form>
-</div>
-
 <a class="btn ghost" href="/logout">Log out</a>
 
 <h3 style="margin-top:28px">Privacy</h3>

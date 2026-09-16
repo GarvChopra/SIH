@@ -1,7 +1,7 @@
 def test_admin_dashboard_requires_admin(client):
     r = client.get("/admin")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.get("/admin").status_code == 403
 
 

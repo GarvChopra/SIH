@@ -1,21 +1,10 @@
-def _login(c, u="prof.rao", p="1234", **extra):
-    return c.post("/login", data={"username": u, "pin": p, **extra})
+def _login(c, u="prof.rao", **extra):
+    return c.post("/auth/google/mock-callback", data={"email": u, "name": u, **extra})
 
 
-def test_profile_page_and_pin_change(client):
+def test_profile_page_renders(client):
     _login(client)
     assert client.get("/profile").status_code == 200
-    r = client.post("/profile/pin", data={"current": "1234", "new": "5678"})
-    assert r.status_code == 302 and "ok=1" in r.headers["Location"]
-    c2 = client.application.test_client()
-    assert c2.post("/login", data={"username": "prof.rao", "pin": "1234"}).status_code == 401
-    assert c2.post("/login", data={"username": "prof.rao", "pin": "5678"}).status_code == 302
-
-
-def test_pin_change_rejects_bad_current(client):
-    _login(client)
-    r = client.post("/profile/pin", data={"current": "0000", "new": "5678"})
-    assert "err=" in r.headers["Location"]
 
 
 def test_home_shows_campus_health(client):

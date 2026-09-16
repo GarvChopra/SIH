@@ -26,12 +26,12 @@ def test_admin_page_renders(admin, path):
 
 @pytest.mark.parametrize("path", PAGES)
 def test_admin_page_blocks_faculty(client, path):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     assert client.get(path).status_code in (302, 403)
 
 
 def test_forbidden_page_is_recoverable_not_bare_werkzeug(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     r = client.get("/admin")
     assert r.status_code == 403
     assert b"Admin access required" in r.data
@@ -41,7 +41,7 @@ def test_forbidden_page_is_recoverable_not_bare_werkzeug(client):
 
 
 def test_forbidden_data_endpoint_stays_json(client):
-    client.post("/login", data={"username": "prof.rao", "pin": "1234"})
+    client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
     r = client.get("/admin/grievances/data")
     assert r.status_code == 403
     assert r.is_json

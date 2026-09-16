@@ -7,7 +7,6 @@ from db import audit, evidence, grievances, locations, notices, recurring, timel
 from domain.constants import CATEGORIES, LOCATION_TYPES, STATUSES
 from domain.models import build_location_label
 from services import classification_service, grievance_service, intelligence_service
-from services.auth_service import hash_pin, verify_pin
 
 bp = Blueprint("faculty", __name__, template_folder="../../templates")
 
@@ -60,20 +59,6 @@ def profile_page():
     u = users.get_by_username(g.current_user["username"])
     return render_template("faculty/profile.html", u=u,
                            ok=request.args.get("ok"), err=request.args.get("err"))
-
-
-@bp.post("/profile/pin")
-def profile_pin():
-    u = users.get_by_username(g.current_user["username"])
-    cur = (request.form.get("current") or "").strip()
-    new = (request.form.get("new") or "").strip()
-    if not verify_pin(cur, u["pin_hash"]):
-        return redirect("/profile?err=Current+PIN+is+incorrect")
-    if not (new.isdigit() and 4 <= len(new) <= 8):
-        return redirect("/profile?err=New+PIN+must+be+4-8+digits")
-    users.set_pin(u["id"], hash_pin(new))
-    audit.add(u["username"], "user.self_pin", target_type="user", target_id=u["id"])
-    return redirect("/profile?ok=1")
 
 
 @bp.post("/profile/delete")
