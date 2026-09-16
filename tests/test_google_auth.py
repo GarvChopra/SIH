@@ -151,3 +151,20 @@ def test_google_callback_handles_oauth_error_gracefully(client, monkeypatch):
     r = client.get("/auth/google/callback")
     assert r.status_code == 401
     assert b"try again" in r.data.lower()
+
+
+def test_google_login_sets_samesite_lax_cookies(client):
+    # The callback's redirect-back response is itself part of a cross-site
+    # top-level navigation (accounts.google.com -> our app); a SameSite=Strict
+    # cookie set there is dropped on the immediate follow-up request, bouncing
+    # a freshly-logged-in user straight back to /login. Reproduced against a
+    # real deploy - regression-guarded here.
+    r = client.post("/auth/google/mock-callback", data={"email": "prof.rao", "name": "Prof Rao"})
+    set_cookies = "; ".join(r.headers.getlist("Set-Cookie"))
+    assert "samesite=lax" in set_cookies.lower()
+
+
+def test_pin_login_keeps_samesite_strict_cookies(client):
+    r = client.post("/login", data={"username": "admin", "pin": "0000"})
+    set_cookies = "; ".join(r.headers.getlist("Set-Cookie"))
+    assert "samesite=strict" in set_cookies.lower()

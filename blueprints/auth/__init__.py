@@ -40,12 +40,19 @@ def _secure_cookies() -> bool:
 _REFRESH_PATH = "/"
 
 
-def set_session_cookies(resp, access: str, refresh: str, remember: bool = False):
+def set_session_cookies(resp, access: str, refresh: str, remember: bool = False,
+                        samesite: str = "Strict"):
+    # samesite="Lax" is required for the Google OAuth callback: the request that
+    # sets these cookies is itself the tail of a cross-site top-level navigation
+    # (accounts.google.com -> our /auth/google/callback -> redirect to "/"), and
+    # a Strict cookie set mid-chain is dropped on that immediate follow-up
+    # request in Chrome, silently bouncing a freshly-logged-in user back to
+    # /login. The PIN-login path has no such redirect chain, so it keeps Strict.
     secure = _secure_cookies()
     resp.set_cookie(_ACCESS, access, max_age=15 * 60, httponly=True,
-                    samesite="Strict", secure=secure, path="/")
+                    samesite=samesite, secure=secure, path="/")
     resp.set_cookie(_REFRESH, refresh, max_age=(30 if remember else 7) * 24 * 3600,
-                    httponly=True, samesite="Strict", secure=secure, path=_REFRESH_PATH)
+                    httponly=True, samesite=samesite, secure=secure, path=_REFRESH_PATH)
     return resp
 
 
@@ -144,7 +151,8 @@ def _finish_google_login(email: str, name: str):
     if not result.success:
         return render_template("login.html", error=result.error), 401
     resp = make_response(redirect("/"))
-    return _set_cookies(resp, result.access_token, result.refresh_token, remember=True)
+    return _set_cookies(resp, result.access_token, result.refresh_token, remember=True,
+                        samesite="Lax")
 
 
 @bp.get("/auth/google/login")
