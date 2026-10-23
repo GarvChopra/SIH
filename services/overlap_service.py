@@ -18,7 +18,7 @@ import time
 from db import (audit, bureaus, case_actions, case_links, complaints, embeddings, institutions,
                 notifications, pool, users)
 from domain import rbac
-from domain.constants import (BUREAU_ADMIN, CONFIRMED, DISMISSED, DISPOSED, EMBED_HIGH,
+from domain.constants import (BUREAU_ADMIN, CONFIRMED, CROSS_CATEGORY_MARGIN, DISMISSED, DISPOSED, EMBED_HIGH,
                               EMBED_MEDIUM, EMBED_MODEL, LEXICAL_HIGH, LEXICAL_MEDIUM,
                               OVERLAPPING_PROCEEDING, PENDING_REVIEW, POSSIBLE_DUPLICATE,
                               RELATED, RELATED_DISTINCT, REVIEW_DECISIONS, SAME_INSTITUTION,
@@ -43,8 +43,11 @@ def thresholds(mode: str):
     return (EMBED_HIGH, EMBED_MEDIUM) if mode == "embedding" else (LEXICAL_HIGH, LEXICAL_MEDIUM)
 
 
-def classify(score: float, mode: str, same_bureau: bool, both_active: bool = True) -> str:
+def classify(score: float, mode: str, same_bureau: bool, both_active: bool = True,
+             same_category: bool = True) -> str:
     high, medium = thresholds(mode)
+    if not same_category:
+        high = min(0.99, high + CROSS_CATEGORY_MARGIN[mode])
     if score >= high:
         if not same_bureau and both_active:
             return OVERLAPPING_PROCEEDING
@@ -140,7 +143,8 @@ def detect_safely(cid: int) -> None:
 def _evaluate(c: dict, o: dict):
     a, b = (c, o) if c["id"] < o["id"] else (o, c)
     s = score_pair(a, b)
-    rel = classify(s["score"], s["mode"], a["bureau_id"] == b["bureau_id"])
+    rel = classify(s["score"], s["mode"], a["bureau_id"] == b["bureau_id"],
+                   same_category=a["category"] == b["category"])
     sig = _signature(a, b)
     existing = case_links.get_pair(a["id"], b["id"])
 

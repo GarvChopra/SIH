@@ -263,3 +263,10 @@ def test_lexical_similarity_is_symmetric_and_explains_itself():
     s2, t2 = lexical.similarity(RB_TEXT[0], PGRC_TEXT[0])
     assert s1 == s2 and set(t1) == set(t2) and "exam" in t1
     assert lexical.similarity("", "anything")[0] == 0.0
+
+
+def test_different_categories_need_a_higher_bar_for_an_overlap_alert():
+    s = LEXICAL_HIGH + 0.05                      # clears the normal bar, not the cross-category bar
+    assert ov.classify(s, "lexical", same_bureau=False, same_category=True) == "overlapping_proceeding"
+    assert ov.classify(s, "lexical", same_bureau=False, same_category=False) == "related"
+    assert ov.classify(0.9, "lexical", same_bureau=False, same_category=False) == "overlapping_proceeding"

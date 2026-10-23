@@ -99,6 +99,10 @@ REVIEW_DECISIONS = [CONFIRMED, DISMISSED, RELATED_DISTINCT]
 # EMBED pair: starting values only, NOT yet measured (no API key was available).
 EMBED_HIGH, EMBED_MEDIUM = 0.80, 0.65
 LEXICAL_HIGH, LEXICAL_MEDIUM = 0.30, 0.20
+# Complaints filed under DIFFERENT categories must clear a higher bar to be called an
+# overlapping proceeding (the domain lexicon is broad, e.g. "hostel" and "laboratory"
+# both map to infrastructure). Below the raised bar they are demoted to "related".
+CROSS_CATEGORY_MARGIN = {"lexical": 0.25, "embedding": 0.08}
 EMBED_MODEL = "embed-v4.0"
 EMBED_DIMENSION = 1536
 
