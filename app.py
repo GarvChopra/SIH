@@ -195,6 +195,24 @@ def create_app() -> Flask:
     return app
 
 
+_APP = None
+
+
+def __getattr__(name):
+    """Lets hosts that run `gunicorn app:app` (Render's default) find an `app` object.
+
+    Built lazily on first access, so importing this module for `create_app` (tests,
+    scripts) never creates an app or seeds data as a side effect. `wsgi:app` is the
+    explicit entry point and does the same thing.
+    """
+    global _APP
+    if name == "app":
+        if _APP is None:
+            _APP = create_app()
+        return _APP
+    raise AttributeError(f"module 'app' has no attribute {name!r}")
+
+
 if __name__ == "__main__":
     _app = create_app()
     _app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)),
