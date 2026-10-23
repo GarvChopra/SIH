@@ -97,6 +97,14 @@ Use two browser windows (or one normal and one private) so the citizen and the o
 14. **Negative example.** Open ABC Engineering College (`123456`): four cases, only the fee pair is
     flagged; the faculty and infrastructure cases are listed but raise no alert.
 
+**Visual Regulatory Workflow Management (board view).** *Cases* → **Board**: one column per status,
+cards show case number, bureau, institution, category, officer, deadline (overdue in red), an
+*Overlap flagged* tag and a *Citizen* tag. Use **PGRC board** for a bureau-specific board. Drag a card
+to a column: a form asks for what that move needs (a reason, a receiving bureau, or an outcome message
+for a citizen), and the server validates it exactly as on the case page and writes the history entry.
+Cards you may not move are not draggable; other bureaus' cards show as restricted. Drag-and-drop needs a
+mouse; on a phone, open the card and use its buttons.
+
 Extras if time allows: *Name matches* (approve the suggested institution for the name-only case and
 watch detection run), *Admin → Users / Bureaus / Audit log* (super admin), the mobile layout
 (shrink the window or open it on a phone), `/api/v1` for the mobile app.
@@ -111,6 +119,7 @@ watch detection run), *Admin → Users / Bureaus / Audit log* (super admin), the
   mandatory reason, dismissed pairs never re-raised unless the text changes.
 * Citizen portal (register, search institution, file with evidence, track, notifications), responsive.
 * Mobile JSON API (`/api/v1`, bearer tokens) over the same services.
+* Kanban board view (drag-and-drop status changes through the same validated actions) beside the table.
 * Dashboard, filters, seven reports with CSV and print-to-PDF, audit log, user and bureau admin.
 
 ## 6. Known limitations (say these before a judge finds them)

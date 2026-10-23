@@ -136,10 +136,60 @@ def report_csv(name):
 def cases():
     f = _filters()
     rows = case_view_service.list_cases(_user(), f)
-    return render_template("cases.html", rows=rows, f=request.args, bureaus=bureaus.list_all(),
+    from urllib.parse import urlencode
+    view = "board" if request.args.get("view") == "board" else "list"
+    qs = urlencode([(k, v) for k, v in request.args.items(multi=True) if k != "view" and v])
+    return render_template("cases.html", rows=rows, f=request.args, view=view, qs=qs,
+                           board=_board(_user(), rows) if view == "board" else None,
+                           bureaus=bureaus.list_all(),
                            categories=CATEGORIES, statuses=STATUSES, regions=REGIONS,
                            officers=[u for u in users.list_staff()
                                      if u["role"] in ("officer", "regional_user")])
+
+
+BOARD_LIMIT = 30
+
+
+def _moves(user, r):
+    """Statuses this user may drag the card to. Only a hint for the UI: the service
+    layer re-checks every rule (and writes the audit/history entry) on submit."""
+    from db import complaints as _cm
+    from domain.constants import STATUS_TRANSITIONS, TRANSFERRED as _T
+    c = _cm.get(r["id"])
+    if not c:
+        return []
+    out = []
+    for t in STATUS_TRANSITIONS.get(c["status"], []):
+        if t == "Pending":                        # accepting a transfer
+            if c["status"] == _T and access_service.can_manage_bureau(user, c["bureau_id"]) \
+                    and rbac.has_permission(user["role"], rbac.COMPLAINT_ESCALATE):
+                out.append(t)
+        elif t in ("Transferred", "Escalated"):
+            if access_service.can_edit(user, c) and rbac.has_permission(user["role"], rbac.COMPLAINT_ESCALATE):
+                out.append(t)
+        elif access_service.can_edit(user, c) and rbac.has_permission(user["role"], rbac.COMPLAINT_UPDATE):
+            out.append(t)
+    return out
+
+
+def _board(user, rows):
+    """Kanban columns: one per status, capped so the page stays light."""
+    cols = []
+    for s in STATUSES:
+        mine = [r for r in rows if r["status"] == s]
+        cards = mine[:BOARD_LIMIT]
+        for r in cards:
+            r["moves"] = _moves(user, r)
+        cols.append({"status": s, "total": len(mine), "cards": cards,
+                     "more": max(0, len(mine) - BOARD_LIMIT)})
+    return cols
+
+
+def _safe_next(url):
+    """Only ever redirect back into the case pages (no open redirect)."""
+    if url and url.startswith("/cases") and not url.startswith("//") and "\n" not in url:
+        return url
+    return None
 
 
 @bp.get("/cases/data")
@@ -184,7 +234,7 @@ def case_detail(case_number):
 @bp.post("/cases/<case_number>/<action>")
 def case_action(case_number, action):
     user, f = _user(), request.form
-    back = f"/cases/{case_number}"
+    back = _safe_next(f.get("next")) or f"/cases/{case_number}"
     if action == "assign":
         return _do(complaint_service.assign, user, case_number, int(f.get("officer_id") or 0),
                    ok="Officer assigned.", back=back)

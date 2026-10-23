@@ -137,6 +137,14 @@ def create_app() -> Flask:
         except Exception:
             return "—"
 
+    @app.template_filter("dm")
+    def _dm(ts):
+        try:
+            import time as _t
+            return _t.strftime("%d %b", _t.localtime(float(ts)))
+        except Exception:
+            return "—"
+
     @app.template_filter("day")
     def _day(ts):
         try:

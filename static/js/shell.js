@@ -52,6 +52,82 @@
       document.getElementById("pin").focus();
     }));
 
+  // case board: drag a card to a column. The drop only opens the right form; the
+  // server validates the move, applies it, and writes the history/audit entry.
+  const board = document.querySelector(".kanban");
+  if (board) {
+    const dlg = document.getElementById("dlg-move");
+    const form = document.getElementById("move-form");
+    const $ = (id) => document.getElementById(id);
+    let dragged = null;
+    const show = (id, on) => { $(id).hidden = !on; };
+    const toast = (msg) => {
+      let box = document.querySelector(".toasts");
+      if (!box) { box = document.createElement("div"); box.className = "toasts"; document.body.appendChild(box); }
+      const t = document.createElement("div"); t.className = "toast err"; t.textContent = msg; box.appendChild(t);
+      setTimeout(() => t.remove(), 4500);
+    };
+    board.querySelectorAll(".kcard").forEach((card) => {
+      card.addEventListener("dragstart", (e) => {
+        if (!card.dataset.moves) { e.preventDefault(); return; }
+        dragged = card; card.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", card.dataset.case); } catch (err) {}
+        const moves = card.dataset.moves.split(",");
+        board.querySelectorAll(".kcol").forEach((col) => {
+          col.classList.toggle("drop-ok", moves.includes(col.dataset.status));
+          col.classList.toggle("drop-no", col.dataset.status !== card.dataset.from && !moves.includes(col.dataset.status));
+        });
+      });
+      card.addEventListener("dragend", () => {
+        card.classList.remove("dragging"); dragged = null;
+        board.querySelectorAll(".kcol").forEach((c) => c.classList.remove("drop-ok", "drop-no"));
+      });
+    });
+    board.querySelectorAll(".kcol").forEach((col) => {
+      col.addEventListener("dragover", (e) => {
+        if (dragged && dragged.dataset.moves.split(",").includes(col.dataset.status)) e.preventDefault();
+      });
+      col.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (!dragged) return;
+        const to = col.dataset.status, from = dragged.dataset.from, num = dragged.dataset.case;
+        const moves = dragged.dataset.moves.split(",");
+        if (to === from) return;
+        if (!moves.includes(to)) { toast("That move is not allowed for " + num + " (" + from + " to " + to + ")."); return; }
+        $("move-next").value = location.pathname + location.search;
+        $("move-sub").textContent = num + ": " + from + " → " + to;
+        $("move-title").textContent = "Move to " + to;
+        $("move-remarks").value = ""; $("move-citizen").value = ""; $("move-bureau").value = "";
+        $("move-remarks").required = false; $("move-bureau").required = false; $("move-citizen").required = false;
+        show("move-bureau-wrap", false); show("move-remarks-wrap", true); show("move-citizen-wrap", false);
+        $("move-to").disabled = false; $("move-to").value = to;
+        const label = $("move-remarks-label");
+        if (to === "Pending") {                                   // accept a transfer
+          form.action = "/cases/" + num + "/accept"; show("move-remarks-wrap", false); $("move-to").disabled = true;
+          $("move-go").textContent = "Accept transfer";
+        } else if (to === "Transferred") {
+          form.action = "/cases/" + num + "/transfer"; show("move-bureau-wrap", true); $("move-bureau").required = true;
+          label.textContent = "Reason"; $("move-go").textContent = "Transfer"; $("move-to").disabled = true;
+        } else if (to === "Escalated") {
+          form.action = "/cases/" + num + "/escalate"; label.textContent = "Why is this being escalated?";
+          $("move-remarks").required = true; $("move-go").textContent = "Escalate"; $("move-to").disabled = true;
+        } else {                                                  // Under Process / Disposed
+          form.action = "/cases/" + num + "/status";
+          if (to === "Disposed") {
+            label.textContent = "Disposal remark (internal)"; $("move-remarks").required = true;
+            if (dragged.dataset.citizen === "1") { show("move-citizen-wrap", true); $("move-citizen").required = true; }
+          } else {
+            label.textContent = from === "Disposed" ? "Reason for reopening" : "Remarks (optional)";
+            $("move-remarks").required = from === "Disposed";
+          }
+          $("move-go").textContent = "Move";
+        }
+        dlg.showModal();
+      });
+    });
+  }
+
   // institution picker (citizen complaint form): searches the public registry
   const box = document.getElementById("inst-search");
   if (box) {

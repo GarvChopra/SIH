@@ -17,7 +17,7 @@ cd aicte-dashboard
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python app.py          # http://127.0.0.1:5000, no database or keys needed
-.venv\Scripts\python -m pytest       # 105 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
+.venv\Scripts\python -m pytest       # 108 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
 ```
 
 ## Architecture
@@ -85,7 +85,7 @@ starting values. A test keeps lexical precision ≥ 0.85 and recall ≥ 0.75 on 
 
 ## Tests
 
-* 105 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
+* 108 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
   classification and review, embeddings (fake client: success, failure fallback, dimension
   mismatch), SLA and idempotent notifications, dashboard numbers vs stored data, reports and CSV
   injection, the seeded dataset, the **complete judge demo over HTTP**, the mobile API.

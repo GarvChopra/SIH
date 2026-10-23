@@ -7,7 +7,18 @@
   <div class="actions">{% if can("complaint.create") %}<a class="btn saffron" href="/cases/new">{{ ui.icon('plus') }}New case</a>{% endif %}</div>
 </div>
 
-<form class="card" method="get" action="/cases" style="margin-bottom:18px">
+<div class="page-head" style="margin-bottom:12px">
+  <div class="pill-nav" aria-label="Case view">
+    <a href="/cases?{{ qs }}" class="{{ 'on' if view == 'list' }}">List</a>
+    <a href="/cases?{{ qs ~ '&' if qs }}view=board" class="{{ 'on' if view == 'board' }}">Board</a>
+  </div>
+  {% if view == 'board' %}<div class="actions"><span class="faint small">Drag a card to a column to change its status. Every move is checked against the rules and recorded in the case history.</span>{% if my_bureau %}<a class="btn ghost sm" href="/cases?view=board&bureau={{ my_bureau.id }}">{{ my_bureau.code }} board</a><a class="btn ghost sm" href="/cases?view=board">All bureaus</a>{% endif %}</div>{% endif %}
+</div>
+
+<details class="card" style="margin-bottom:18px" {{ 'open' if view == 'list' }}>
+<summary style="padding:12px 18px;font-weight:700;color:var(--navy-900);cursor:pointer">Filters{% if qs %} <span class="chip plain" style="margin-left:6px">active</span>{% endif %}</summary>
+<form method="get" action="/cases" style="border-top:1px solid var(--line)">
+{% if view == 'board' %}<input type="hidden" name="view" value="board">{% endif %}
   <div class="body">
     <div class="filters">
       <label class="f f-wide">Search<input type="search" name="q" value="{{ f.get('q','') }}" placeholder="Case no., institution, title or text"></label>
@@ -27,6 +38,42 @@
     <div class="actions" style="margin-top:14px"><button class="btn" type="submit">Apply filters</button><a class="btn ghost" href="/cases">Clear</a></div>
   </div>
 </form>
+</details>
 
+{% if view == 'board' %}
+<div class="kanban" aria-label="Case board">
+  {% for col in board %}
+  <section class="kcol k-{{ col.status | replace(' ', '-') }}" data-status="{{ col.status }}">
+    <header><h3>{{ col.status }}</h3><span class="kcount">{{ col.total }}</span></header>
+    <div class="kcards">
+      {% for r in col.cards %}
+      <a class="kcard {{ 'is-restricted' if r.restricted }} {{ 'movable' if r.moves }}" href="/cases/{{ r.case_number }}" draggable="{{ 'true' if r.moves else 'false' }}"
+         data-case="{{ r.case_number }}" data-from="{{ r.status }}" data-moves="{{ r.moves | join(',') }}" data-citizen="{{ 1 if r.channel == 'citizen' and not r.restricted else 0 }}">
+        <div class="ktop"><span class="mono kid">{{ r.case_number }}</span><span class="tag">{{ r.bureau_code }}</span></div>
+        <div class="kttl">{% if r.restricted %}Restricted &middot; held by {{ r.bureau_code }}{% else %}{{ r.title }}{% endif %}</div>
+        <div class="ksub">{{ r.institution_label }}</div>
+        <div class="ktags"><span class="chip plain">{{ r.category }}</span>{% if r.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if r.channel == 'citizen' and not r.restricted %}<span class="chip plain">Citizen</span>{% endif %}</div>
+        <div class="kfoot">
+          <span class="kown">{% if r.officer_name %}<i class="av">{{ r.officer_name[:1] }}</i>{{ r.officer_name.split(' ')[0] }}{% elif r.restricted %}&nbsp;{% else %}<span class="faint">Unassigned</span>{% endif %}</span>
+          {% if r.status == 'Disposed' %}<span class="small" style="color:var(--ok);font-weight:700">Closed</span>{% else %}<span class="small {{ 'k-over' if r.sla == 'overdue' }}">{% if r.sla == 'overdue' %}Overdue &middot; {% else %}Due {% endif %}{{ r.expected_disposal_at | dm }}</span>{% endif %}
+        </div>
+      </a>
+      {% else %}<div class="kempty">No cases</div>{% endfor %}
+      {% if col.more %}<a class="kmore" href="/cases?{{ qs ~ '&' if qs }}status={{ col.status }}">+ {{ col.more }} more in list</a>{% endif %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<dialog id="dlg-move"><form method="post" id="move-form"><h3 id="move-title">Move case</h3>
+  <p class="small muted" id="move-sub"></p>
+  <input type="hidden" name="next" id="move-next">
+  <input type="hidden" name="to" id="move-to">
+  <label class="f" id="move-bureau-wrap">Receiving bureau<select name="to_bureau" id="move-bureau"><option value="">Choose a bureau</option>{% for b in bureaus %}<option value="{{ b.id }}">{{ b.code }} &middot; {{ b.name }}</option>{% endfor %}</select></label>
+  <label class="f" id="move-remarks-wrap"><span id="move-remarks-label">Remarks</span><textarea name="remarks" id="move-remarks" rows="3"></textarea></label>
+  <label class="f" id="move-citizen-wrap">Outcome message for the complainant <span class="hint">The complainant will read this. Required when disposing a citizen's complaint.</span><textarea name="citizen_message" id="move-citizen" rows="3"></textarea></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="move-go">Move</button></div></form></dialog>
+{% else %}
 <div class="card"><div class="body flush">{{ ui.case_table(rows) }}</div></div>
+{% endif %}
 {% endblock %}
