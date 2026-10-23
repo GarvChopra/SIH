@@ -38,6 +38,11 @@ class Config:
     # Optional. Without it, overlap detection uses the offline lexical matcher.
     COHERE_API_KEY = os.environ.get("COHERE_API_KEY", "").strip()
 
+    # Optional LLM judge (Groq). Used only when there is no Cohere key. It scores whether
+    # two complaints describe the same allegation; officials still make every decision.
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+    GROQ_MODEL   = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+
     # Initial super admin (production): the app will not auto-create demo
     # accounts in production. Set these to bootstrap the first account instead.
     INITIAL_ADMIN_USERNAME = os.environ.get("INITIAL_ADMIN_USERNAME", "").strip()

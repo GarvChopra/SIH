@@ -102,7 +102,11 @@ LEXICAL_HIGH, LEXICAL_MEDIUM = 0.30, 0.20
 # Complaints filed under DIFFERENT categories must clear a higher bar to be called an
 # overlapping proceeding (the domain lexicon is broad, e.g. "hostel" and "laboratory"
 # both map to infrastructure). Below the raised bar they are demoted to "related".
-CROSS_CATEGORY_MARGIN = {"lexical": 0.25, "embedding": 0.08}
+CROSS_CATEGORY_MARGIN = {"lexical": 0.25, "embedding": 0.08, "llm": 0.15}
+# LLM-judge mode (Groq): the model answers "same allegation?" on a 0..1 scale. Starting
+# values, NOT measured. Pairs the keyword matcher scores below LLM_PREFILTER are not sent
+# to the model at all (clearly unrelated; saves latency, cost and exposure of text).
+LLM_HIGH, LLM_MEDIUM, LLM_PREFILTER = 0.75, 0.50, 0.12
 EMBED_MODEL = "embed-v4.0"
 EMBED_DIMENSION = 1536
 

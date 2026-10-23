@@ -63,9 +63,16 @@ def main() -> int:
             va, vb = embedding_service.embed(p["a"]), embedding_service.embed(p["b"])
             sem.append(embedding_service.cosine(va, vb) if va and vb else 0.0)
         report("Cohere embed-v4.0", sem, labels, [x / 100 for x in range(40, 96, 5)])
+    elif os.environ.get("GROQ_API_KEY") or __import__("config").Config.GROQ_API_KEY:
+        from services import llm_similarity
+        llm = []
+        for p in pairs:
+            v = llm_similarity.judge(p["a"], p["b"])
+            llm.append(v["score"] if v else 0.0)
+        report("Groq LLM judge", llm, labels, [x / 100 for x in range(30, 96, 5)])
     else:
-        print("\n(no COHERE_API_KEY: embedding mode not measured; embedding thresholds "
-              "0.80/0.65 are unvalidated starting values)")
+        print("\n(no COHERE_API_KEY or GROQ_API_KEY: AI modes not measured; their thresholds "
+              "are unvalidated starting values)")
     return 0
 
 

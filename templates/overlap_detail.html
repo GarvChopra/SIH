@@ -41,6 +41,7 @@
         <div class="s"><b>{{ ((sc.get('lexical') or 0) * 100) | round | int }}%</b><span>Keyword overlap</span></div>
         <div class="s"><b>{{ (((sc.get('semantic')) * 100) | round | int ~ '%') if sc.get('semantic') is not none else 'n/a' }}</b><span>Semantic (AI)</span></div>
       </div>
+      {% if ev.get('ai_reason') %}<div class="banner info" style="margin-top:14px">{{ ui.icon('info') }}<div><b>AI judge's note (a suggestion)</b>{{ ev.ai_reason }}</div></div>{% endif %}
       <h4 style="margin:18px 0 8px">Shared terms</h4>
       {% if ev.get('shared_terms') %}<div class="terms">{% for t in ev.shared_terms %}<span>{{ t }}</span>{% endfor %}</div>{% else %}<p class="muted small">No shared meaningful terms.</p>{% endif %}
       <p class="small faint" style="margin-top:14px">Scores are suggestions to help prioritise review. The AI never merges, transfers or closes a case.</p>

@@ -7,7 +7,7 @@ import pytest
 # credential left unset here would be pulled in from .env and make tests hit live
 # services. Setting each to "" (not pop) blocks that.
 os.environ["APP_ENV"] = "development"
-for _k in ("DATABASE_URL", "COHERE_API_KEY", "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PIN",
+for _k in ("DATABASE_URL", "COHERE_API_KEY", "GROQ_API_KEY", "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PIN",
            "ALLOW_PROD_DEMO_SEED", "FLASK_DEBUG", "FIREBASE_KEY_JSON",
            "FIREBASE_CREDENTIALS_B64", "FIREBASE_SERVICE_ACCOUNT_JSON",
            "GOOGLE_APPLICATION_CREDENTIALS"):

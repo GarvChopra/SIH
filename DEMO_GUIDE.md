@@ -21,7 +21,8 @@ Startup takes a few seconds (password hashing). Nothing needs editing by hand du
 * **Persistent data (optional):** set `DATABASE_URL` to a **fresh** PostgreSQL database
   (it will not migrate the old campus schema), then run
   `python -m scripts.seed_aicte_demo` once. To reseed, drop and recreate the database.
-* **Optional AI embeddings:** `pip install cohere==5.15.0` and set `COHERE_API_KEY`. Without it the
+* **Optional Groq AI judge:** put `GROQ_API_KEY=...` in a `.env` file (copy `.env.example`) and restart. Groq has no embeddings, so it scores each similar pair 0 to 1 as "same allegation?" and adds a one-line reason on the review screen. Pairs the keyword matcher finds clearly unrelated are not sent. Any failure falls back to offline matching. Unmeasured; test it once before presenting because filing a case then waits on the network (8 s timeout).
+* **Optional AI embeddings (takes priority over Groq):** `pip install cohere==5.15.0` and set `COHERE_API_KEY`. Without it the
   offline keyword matcher is used (this is what the demo is tested with).
 * **Show all accounts:** `python -m scripts.seed_aicte_demo --accounts`
 

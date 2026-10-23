@@ -263,6 +263,8 @@ def build(seed: int = 7) -> dict:
     now = _real_time()
     taken = {}                                     # aicte id -> categories already used there
     made = {"planted": 0, "random": 0, "citizen": 0}
+    ai_off = ov.ai_disabled()            # never call Cohere/Groq for hundreds of seeded pairs
+    ai_off.__enter__()
     try:
         for aid, name, addr, region in INSTITUTIONS:
             institutions.create(aid, name, addr, region)
@@ -408,6 +410,7 @@ def build(seed: int = 7) -> dict:
         citizen_case("kabir.singh", "100122", "Admission irregularities", 8, "pending")
     finally:
         _restore()
+        ai_off.__exit__(None, None, None)
 
     from db import complaints, pool
     if pool.is_firestore():

@@ -23,8 +23,23 @@ from domain.constants import (BUREAU_ADMIN, CONFIRMED, CROSS_CATEGORY_MARGIN, DI
                               OVERLAPPING_PROCEEDING, PENDING_REVIEW, POSSIBLE_DUPLICATE,
                               RELATED, RELATED_DISTINCT, REVIEW_DECISIONS, SAME_INSTITUTION,
                               SUPER_ADMIN)
-from services import access_service, embedding_service, lexical
+from domain.constants import LLM_HIGH, LLM_MEDIUM, LLM_PREFILTER
+from services import access_service, embedding_service, lexical, llm_similarity
 from services.errors import NotFound, PermissionDenied, ValidationError
+
+_AI_ENABLED = True
+
+
+class ai_disabled:
+    """Context manager: bulk jobs (the demo seeder) must not call a paid/rate-limited API
+    for hundreds of pairs. Detection still runs, on the offline matcher."""
+    def __enter__(self):
+        global _AI_ENABLED
+        self._prev, _AI_ENABLED = _AI_ENABLED, False
+
+    def __exit__(self, *exc):
+        global _AI_ENABLED
+        _AI_ENABLED = self._prev
 
 log = logging.getLogger("samanvay.overlap")
 
@@ -40,7 +55,11 @@ def text_of(c: dict) -> str:
 
 
 def thresholds(mode: str):
-    return (EMBED_HIGH, EMBED_MEDIUM) if mode == "embedding" else (LEXICAL_HIGH, LEXICAL_MEDIUM)
+    if mode == "embedding":
+        return EMBED_HIGH, EMBED_MEDIUM
+    if mode == "llm":
+        return LLM_HIGH, LLM_MEDIUM
+    return LEXICAL_HIGH, LEXICAL_MEDIUM
 
 
 def classify(score: float, mode: str, same_bureau: bool, both_active: bool = True,
@@ -70,16 +89,20 @@ def _vector_for(c: dict):
 
 def score_pair(a: dict, b: dict) -> dict:
     lex, shared = lexical.similarity(text_of(a), text_of(b))
-    semantic = None
-    if embedding_service.available():
+    semantic, mode, reason = None, "lexical", None
+    if _AI_ENABLED and embedding_service.available():
         va, vb = _vector_for(a), _vector_for(b)
         if va is not None and vb is not None:
             semantic = round(embedding_service.cosine(va, vb), 4)
+            mode = "embedding"
             audit.add("system", "ai.similarity", target_type="case_pair",
                       target_id=f"{a['id']}-{b['id']}",
                       detail={"model": EMBED_MODEL, "score": semantic, "success": True})
-    mode = "embedding" if semantic is not None else "lexical"
-    return {"lexical": lex, "semantic": semantic, "mode": mode,
+    elif _AI_ENABLED and llm_similarity.available() and lex >= LLM_PREFILTER:
+        verdict = llm_similarity.judge(text_of(a), text_of(b), pair_id=f"{a['id']}-{b['id']}")
+        if verdict is not None:
+            semantic, mode, reason = verdict["score"], "llm", verdict["reason"]
+    return {"lexical": lex, "semantic": semantic, "mode": mode, "ai_reason": reason,
             "score": semantic if semantic is not None else lex, "shared_terms": shared}
 
 
@@ -98,7 +121,7 @@ def _evidence(a: dict, b: dict, s: dict, rel: str) -> dict:
         "institution_id": inst["id"], "aicte_id": inst["aicte_permanent_id"],
         "scores": {"lexical": s["lexical"], "semantic": s["semantic"], "used": s["score"],
                    "mode": s["mode"]},
-        "shared_terms": s["shared_terms"],
+        "shared_terms": s["shared_terms"], "ai_reason": s.get("ai_reason"),
         "categories": [a["category"], b["category"]], "same_category": same_cat,
         "bureaus": [ba["code"], bb["code"]], "bureau_ids": [a["bureau_id"], b["bureau_id"]],
         "statuses": [a["status"], b["status"]],

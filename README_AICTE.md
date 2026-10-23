@@ -17,7 +17,7 @@ cd aicte-dashboard
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python app.py          # http://127.0.0.1:5000, no database or keys needed
-.venv\Scripts\python -m pytest       # 108 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
+.venv\Scripts\python -m pytest       # 124 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
 ```
 
 ## Architecture
@@ -80,12 +80,12 @@ fee not in prospectus").
 | 0.40 | 1.00 | 0.65 | 17 / 0 / 9 |
 
 Thresholds were chosen on this same set, so they are optimistic; the set is small and written by us.
-**Embedding mode has not been measured** (no key available), so its thresholds are unvalidated
+**The AI modes (Cohere embeddings, Groq LLM judge) have not been measured** (no key available), so its thresholds are unvalidated
 starting values. A test keeps lexical precision ≥ 0.85 and recall ≥ 0.75 on the set.
 
 ## Tests
 
-* 108 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
+* 124 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
   classification and review, embeddings (fake client: success, failure fallback, dimension
   mismatch), SLA and idempotent notifications, dashboard numbers vs stored data, reports and CSV
   injection, the seeded dataset, the **complete judge demo over HTTP**, the mobile API.
