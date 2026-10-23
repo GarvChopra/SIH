@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Reports</h1><p>Open a report to view or print it, or download it as CSV. Reports contain counts and case numbers only, never case text.</p></div></div>
+<div class="grid g2">
+{% for key, meta in reports.items() %}
+  <section class="card"><header><h3>{{ meta[0] }}</h3></header><div class="body">
+    <p class="muted" style="margin-bottom:14px">{{ meta[1] }}</p>
+    <div class="actions"><a class="btn" href="/reports/{{ key }}">View</a><a class="btn ghost" href="/reports/{{ key }}.csv">{{ ui.icon('download') }}CSV</a></div></div></section>
+{% endfor %}
+</div>
+{% endblock %}

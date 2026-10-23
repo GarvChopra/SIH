@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Complaint monitoring</h1><p>Live figures from the case register. Select any number to see its cases.</p></div>
+  <div class="actions">{% if can("complaint.create") %}<a class="btn saffron" href="/cases/new">{{ ui.icon('plus') }}New case</a>{% endif %}<a class="btn ghost" href="/reports">{{ ui.icon('reports') }}Reports</a></div>
+</div>
+
+{% if d.alerts %}
+<div class="banner alert">{{ ui.icon('link') }}<div><b>{{ d.alerts }} overlap alert{{ '' if d.alerts == 1 else 's' }} awaiting review</b>Different bureaus may be investigating the same issue at the same institution. <a href="/overlaps"><b>Open overlap review</b></a></div></div>
+{% endif %}
+{% if d.citizen_pending %}<div class="banner info">{{ ui.icon('info') }}<div><b>{{ d.citizen_pending }} citizen complaint{{ '' if d.citizen_pending == 1 else 's' }} waiting to be taken up.</b> <a href="/cases?status=Pending"><b>View pending cases</b></a></div></div>{% endif %}
+
+<div class="kpis">
+  {{ ui.kpi("Total cases", d.total, "/cases") }}
+  {{ ui.kpi("Pending", d.by_status['Pending'], "/cases?status=Pending", "warn") }}
+  {{ ui.kpi("Under process", d.by_status['Under Process'], "/cases?status=Under Process") }}
+  {{ ui.kpi("Transferred", d.by_status['Transferred'], "/cases?status=Transferred") }}
+  {{ ui.kpi("Escalated", d.by_status['Escalated'], "/cases?status=Escalated", "bad" if d.by_status['Escalated'] else "") }}
+  {{ ui.kpi("Disposed", d.by_status['Disposed'], "/cases?status=Disposed", "ok") }}
+</div>
+<div class="kpis">
+  {{ ui.kpi("Overdue", d.overdue, "/cases?deadline=overdue", "bad" if d.overdue else "ok", "past the SLA deadline") }}
+  {{ ui.kpi("Due soon", d.due_soon, "/cases?deadline=due_soon", "warn" if d.due_soon else "", "last 20% of window") }}
+  {{ ui.kpi("Overlap alerts", d.alerts, "/overlaps", "alert" if d.alerts else "", "awaiting review") }}
+  {{ ui.kpi("Unlinked cases", d.unlinked, "/institutions/aliases" if can("alias.review") else "/cases", "warn" if d.unlinked else "", "no AICTE ID yet") }}
+</div>
+
+<div class="grid g-main" style="margin-bottom:18px">
+  <section class="card"><header><h3>Bureau-wise workload</h3><a href="/reports/bureau-wise">Report</a></header><div class="body">
+    {% set rows = [] %}{% for r in d.bureau_rows %}{% if r.total %}{% set _ = rows.append({'label': r.bureau.code ~ ' · ' ~ r.bureau.name, 'value': r.active, 'href': '/cases?bureau=' ~ r.bureau.id, 'note': (r.overdue ~ ' overdue') if r.overdue else '', 'tone': 'bad' if r.overdue else ''}) %}{% endif %}{% endfor %}
+    {{ ui.bars(rows) }}<p class="small faint" style="margin-top:12px">Bars show active (not disposed) cases.</p>
+  </div></section>
+  <section class="card"><header><h3>Cases by status</h3></header><div class="body">{{ ui.donut(d.status_segments) }}</div></section>
+</div>
+
+<div class="grid g2" style="margin-bottom:18px">
+  <section class="card"><header><h3>Region-wise workload</h3><a href="/reports/region-wise">Report</a></header><div class="body">
+    {% set rrows = [] %}{% for r in d.region_rows %}{% set _ = rrows.append({'label': r.region, 'value': r.active, 'href': ('/cases?region=' ~ r.key) if r.key else None, 'note': (r.overdue ~ ' overdue') if r.overdue else '', 'tone': 'sf'}) %}{% endfor %}
+    {{ ui.bars(rrows) }}</div></section>
+  <section class="card"><header><h3>Top institutions by active cases</h3><a href="/reports/institution-wise">Report</a></header><div class="body flush">
+    {% if d.top_institutions %}<div class="table-wrap"><table class="t"><thead><tr><th>Institution</th><th class="num">Active</th><th class="num">Bureaus</th></tr></thead><tbody>
+    {% for t in d.top_institutions %}<tr><td><a class="rowlink" href="/institutions/{{ t.institution.aicte_permanent_id }}">{{ t.institution.name }}</a><span class="sub">ID {{ t.institution.aicte_permanent_id }}</span></td><td class="num"><a href="/cases?aicte_id={{ t.institution.aicte_permanent_id }}">{{ t.active }}</a></td><td class="num">{% if t.bureaus > 1 %}<span class="chip overlap plain">{{ t.bureaus }}</span>{% else %}{{ t.bureaus }}{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}{{ ui.empty("No active cases") }}{% endif %}</div></section>
+</div>
+
+<div class="grid g2">
+  <section class="card"><header><h3>Overlap alerts</h3><a href="/overlaps">All</a></header><div class="body flush">
+    {% if d.alert_rows %}<ul class="list-links" style="padding:0 18px">{% for r in d.alert_rows %}<li><span><b>{{ r.institution.name }}</b><br><span class="mono small">{{ r.a.case_number }} ({{ r.bureau_a }}) &harr; {{ r.b.case_number }} ({{ r.bureau_b }})</span></span><a class="btn saffron sm" href="/overlaps/{{ r.link.id }}">Review</a></li>{% endfor %}</ul>
+    {% else %}<div class="body">{{ ui.empty("No open alerts", "No unreviewed overlaps involve your bureau.") }}</div>{% endif %}</div></section>
+  <section class="card"><header><h3>Needs attention{% if my_bureau %} &middot; {{ my_bureau.code }}{% endif %}</h3><a href="/cases?deadline=overdue">Overdue</a></header><div class="body flush">
+    {% if d.needs_attention %}<ul class="list-links" style="padding:0 18px">{% for c in d.needs_attention %}<li><span><a class="mono rowlink" href="/cases/{{ c.case_number }}">{{ c.case_number }}</a><br><span class="small muted">{{ c.title }}</span></span><span class="small nowrap">due {{ c.expected_disposal_at | day }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="body">{{ ui.empty("Nothing due", "None of your bureau's cases is overdue or due soon.") }}</div>{% endif %}</div></section>
+</div>
+{% endblock %}

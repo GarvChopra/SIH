@@ -4,7 +4,8 @@ import pytest
 from tests.conftest import login
 from services import complaint_service as cs
 
-PAGES = ["/cases", "/cases/new", "/institutions", "/notifications", "/cases/data"]
+PAGES = ["/cases", "/cases/new", "/institutions", "/notifications", "/cases/data", "/reports",
+         "/overlaps", "/overlaps?tab=decided", "/dashboard/data"]
 
 
 @pytest.fixture()

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}{{ r.title }}{% endblock %}
+{% block content %}
+<div class="crumbs no-print"><a href="/reports">Reports</a> / {{ r.title }}</div>
+<div class="page-head">
+  <div><h1>{{ r.title }}</h1><p>{{ r.about }}</p><p class="small faint">Generated {{ r.generated_at | when }} by {{ current_user.display_name }} &middot; synthetic demonstration data</p></div>
+  <div class="actions"><a class="btn ghost" href="/reports/{{ r.name }}.csv">{{ ui.icon('download') }}CSV</a><button class="btn" type="button" onclick="window.print()">Print / save as PDF</button></div>
+</div>
+<div class="card"><div class="body flush">
+{% if r.rows %}
+<div class="table-wrap"><table class="t"><thead><tr>{% for c in r.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead><tbody>
+{% for row in r.rows %}<tr>{% for v in row %}<td class="{{ 'num' if v is number else '' }}">{{ v }}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table></div>
+{% else %}{{ ui.empty("No data for this report yet") }}{% endif %}
+</div></div>
+<div class="no-print" style="margin-top:16px"><div class="pill-nav">{% for key, meta in reports.items() %}<a href="/reports/{{ key }}" class="{{ 'on' if key == r.name }}">{{ meta[0] }}</a>{% endfor %}</div></div>
+{% endblock %}

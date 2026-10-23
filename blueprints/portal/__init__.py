@@ -9,7 +9,8 @@ from domain.constants import (CATEGORIES, PRIORITIES, REGIONS, ROLE_LABELS, STAF
                               STATUSES, SUPER_ADMIN)
 from domain import rbac
 from services import (access_service, case_view_service, citizen_service, complaint_service,
-                      file_service, institution_service, overlap_service, sla_service)
+                      dashboard_service, file_service, institution_service, overlap_service,
+                      report_service, sla_service)
 from services.auth_service import hash_pin
 from services.errors import ServiceError
 
@@ -79,7 +80,53 @@ def _filters():
 
 @bp.get("/")
 def dashboard():
-    return redirect("/cases")
+    try:
+        sla_service.run_sweep()          # idempotent: one due-soon/overdue notice per case
+    except Exception:  # noqa: BLE001 - never block the dashboard
+        pass
+    return render_template("dashboard.html", d=dashboard_service.build(_user()))
+
+
+@bp.get("/dashboard/data")
+def dashboard_data():
+    d = dashboard_service.build(_user())
+    d.pop("alert_rows", None)
+    d.pop("needs_attention", None)
+    d["bureau_rows"] = [{"bureau": r["bureau"]["code"], **{k: v for k, v in r.items() if k != "bureau"}}
+                        for r in d["bureau_rows"]]
+    d["top_institutions"] = [{"aicte_id": r["institution"]["aicte_permanent_id"],
+                              "name": r["institution"]["name"], "active": r["active"],
+                              "bureaus": r["bureaus"]} for r in d["top_institutions"]]
+    return jsonify(d)
+
+
+@bp.get("/reports")
+def reports():
+    _need(rbac.REPORT_VIEW)
+    return render_template("reports.html", reports=report_service.REPORTS)
+
+
+@bp.get("/reports/<name>")
+def report_view(name):
+    _need(rbac.REPORT_VIEW)
+    try:
+        r = report_service.build(name, _user())
+    except KeyError:
+        abort(404)
+    return render_template("report_view.html", r=r, reports=report_service.REPORTS)
+
+
+@bp.get("/reports/<name>.csv")
+def report_csv(name):
+    _need(rbac.REPORT_VIEW)
+    try:
+        r = report_service.build(name, _user())
+    except KeyError:
+        abort(404)
+    from flask import Response
+    audit.add(_user()["username"], "report.export", target_type="report", target_id=name)
+    return Response(report_service.to_csv(r), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=samanvay-{name}.csv"})
 
 
 # ── cases ─────────────────────────────────────────────────────────────────

@@ -137,7 +137,7 @@ def test_citizen_web_flow_and_role_separation(app, inst):
     page = cl.get(url)
     assert page.status_code == 200 and b"AICTE-CMP-00001" in page.data and b"receipt.pdf" in page.data
     # citizens are bounced from every official page and API
-    for path in ("/cases", "/cases/AICTE-CMP-00001", "/institutions", "/admin/users"):
+    for path in ("/cases", "/cases/AICTE-CMP-00001", "/institutions", "/overlaps", "/reports", "/admin/users"):
         assert cl.get(path).status_code == 302, path
     assert cl.get("/cases/data").status_code == 302
     # their own evidence downloads; a stranger cannot fetch it
