@@ -3,13 +3,8 @@ python-dotenv==1.0.0
 gunicorn==21.2.0
 psycopg[binary]==3.2.10
 PyJWT==2.8.0
-Authlib==1.3.2
 bcrypt==4.1.3
-requests==2.32.3
-Pillow==10.4.0
-# Optional backends — the code degrades gracefully if these fail to import, but
-# production needs them: boto3 for the R2/S3 evidence-photo store, firebase-admin
-# for the Firestore fallback when PostgreSQL is unreachable.
-boto3==1.34.162
-firebase-admin==6.5.0
 pytest==9.0.3
+# Optional at runtime. Without it (or without COHERE_API_KEY) overlap detection uses
+# the offline lexical matcher. Install only if you have a Cohere key:
+#   pip install cohere==5.15.0

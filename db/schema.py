@@ -2,7 +2,7 @@
 
 This is the SAMANVAY (AICTE) schema. It replaces the old campus-grievance
 schema outright: point it at a fresh database. `CREATE TABLE IF NOT EXISTS`
-will NOT migrate an old UNIFIX `users` table (its role CHECK is different).
+will NOT migrate an old campus `users` table (its role CHECK is different).
 
 Timestamps are epoch floats (DOUBLE PRECISION), matching the in-memory path.
 """

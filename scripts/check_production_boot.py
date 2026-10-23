@@ -1,6 +1,6 @@
 """Manual production-safety smoke check (no real database needed).
 
-Each scenario runs in a fresh Python subprocess and asserts UNIFIX either
+Each scenario runs in a fresh Python subprocess and asserts SAMANVAY either
 boots cleanly or FAILS LOUDLY — never silently degrades to in-memory.
 
 Run:  python scripts/check_production_boot.py
