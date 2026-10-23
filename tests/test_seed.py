@@ -29,7 +29,8 @@ def test_data_is_varied_enough_to_demo(seeded):
     from collections import Counter
     st = Counter(c["status"] for c in complaints.all_rows())
     assert all(st[s] > 0 for s in ("Pending", "Under Process", "Transferred", "Escalated", "Disposed"))
-    assert len({c["category"] for c in complaints.all_rows()}) == 8
+    assert len({c["category"] for c in complaints.all_rows()}) == 9      # 8 problem categories + queries
+    assert {c["tier"] for c in complaints.all_rows()} == {1, 2, 3}
     assert len({c["bureau_id"] for c in complaints.all_rows()}) >= 6
     from services import sla_service
     states = Counter(sla_service.state(c) for c in complaints.all_rows())
@@ -79,7 +80,8 @@ def test_name_only_case_waits_for_alias_approval(seeded, actor):
 
 def test_citizen_demo_account_has_a_realistic_history(seeded, actor):
     mine = ctz.list_own(actor("citizen.demo"))
-    assert len(mine) == 3
+    assert len(mine) == 4
+    assert {m["kind"] for m in mine} == {"Complaint", "Question"}
     assert {m["status_label"] for m in mine} == {"Received", "Under examination", "Closed"}
     closed = next(m for m in mine if m["status"] == "Disposed")
     d = ctz.detail(actor("citizen.demo"), closed["case_number"])

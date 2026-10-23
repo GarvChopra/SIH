@@ -13,7 +13,8 @@ from db import bureaus, case_links, complaints, institutions
 from domain.constants import (ACTIVE_STATUSES, DISPOSED, DUE_SOON, ESCALATED, OVERDUE,
                               OVERLAPPING_PROCEEDING, PENDING, PENDING_REVIEW, REGIONS,
                               STATUSES, TRANSFERRED, UNDER_PROCESS)
-from services import access_service, overlap_service, sla_service
+from domain.constants import TIER_INFO, TIERS
+from services import access_service, case_view_service, overlap_service, sla_service
 
 STATUS_COLORS = {PENDING: "#c98a12", UNDER_PROCESS: "#1a3f86", TRANSFERRED: "#6b46c1",
                  ESCALATED: "#c5352b", DISPOSED: "#18875a"}
@@ -26,6 +27,26 @@ def _visible(user: dict) -> list:
 def _region_of(c, inst_by_id):
     inst = inst_by_id.get(c["institution_id"])
     return (inst["region"] if inst and inst["region"] else None) if inst else None
+
+
+def tier_board(user: dict, now: float, per_cell: int = 2) -> list:
+    """Kanban-style matrix: a lane per tier, a cell per status, with live counts and the
+    most urgent cards. Cards are masked exactly as on the case board."""
+    rows = case_view_service.list_cases(user, {}, limit=1_000_000)
+    urgency = {"overdue": 0, "due_soon": 1, "on_track": 2, None: 3}
+    lanes = []
+    for t in TIERS:
+        mine = [r for r in rows if r.get("tier") == t]
+        cells = []
+        for s in STATUSES:
+            cell = [r for r in mine if r["status"] == s]
+            cell.sort(key=lambda r: (urgency[r["sla"]], r["expected_disposal_at"] or 0))
+            cells.append({"status": s, "count": len(cell), "cards": cell[:per_cell],
+                          "href": f"/cases?view=board&group=tier&tier={t}&status={s}"})
+        lanes.append({"tier": t, "info": TIER_INFO[t], "total": len(mine),
+                      "active": sum(1 for r in mine if r["status"] != DISPOSED),
+                      "overdue": sum(1 for r in mine if r["sla"] == OVERDUE), "cells": cells})
+    return lanes
 
 
 def build(user: dict) -> dict:
@@ -93,5 +114,6 @@ def build(user: dict) -> dict:
                                and c["status"] == PENDING),
         "status_segments": [{"label": s, "value": by_status[s], "color": STATUS_COLORS[s],
                              "href": f"/cases?status={s}"} for s in STATUSES],
+        "tier_board": tier_board(user, now),
         "generated_at": now,
     }

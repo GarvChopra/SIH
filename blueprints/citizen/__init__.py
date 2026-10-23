@@ -77,6 +77,7 @@ def new():
         try:
             c = complaint_service.create_for_citizen(
                 _me(), aicte_id=f.get("aicte_id"), category=f.get("category"),
+                tier=f.get("tier") or 2,
                 title=f.get("title"), description=f.get("description"))
             for fs in [x for x in request.files.getlist("files") if x and x.filename][
                     :file_service.MAX_FILES]:

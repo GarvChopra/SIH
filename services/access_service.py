@@ -21,7 +21,7 @@ from domain.constants import (BUREAU_ADMIN, CONFIRMED, DISPOSED, OFFICER,
 
 FULL, SUMMARY = "full", "summary"
 
-_SUMMARY_FIELDS = ("id", "case_number", "institution_id", "category", "status",
+_SUMMARY_FIELDS = ("id", "case_number", "institution_id", "category", "tier", "status",
                    "bureau_id", "received_at", "expected_disposal_at")
 RESTRICTED_TITLE = "Restricted – another bureau's case"
 

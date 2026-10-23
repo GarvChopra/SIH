@@ -138,11 +138,11 @@ def _evidence(a: dict, b: dict, s: dict, rel: str) -> dict:
 def detect(cid: int) -> list:
     """Compare one complaint with every other active complaint at its institution."""
     c = complaints.get(cid)
-    if not c or not c["institution_id"] or c["status"] == DISPOSED:
-        return []
+    if not c or not c["institution_id"] or c["status"] == DISPOSED or c.get("tier") == 1:
+        return []                     # a Tier 1 query is a question, not a proceeding
     out = []
     for o in complaints.for_institution(c["institution_id"]):
-        if o["id"] == c["id"] or o["status"] == DISPOSED:
+        if o["id"] == c["id"] or o["status"] == DISPOSED or o.get("tier") == 1:
             continue
         link = _evaluate(c, o)
         if link:

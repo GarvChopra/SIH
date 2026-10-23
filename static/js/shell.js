@@ -52,9 +52,28 @@
       document.getElementById("pin").focus();
     }));
 
+  // Query vs Problem: a query has no category, so hide and un-require it
+  const tierInputs = document.querySelectorAll('[name="tier"]');
+  const catWrap = document.getElementById("cat-wrap"), catSel = document.getElementById("cat-sel");
+  if (tierInputs.length && catWrap && catSel) {
+    const sync = () => {
+      const picked = [...tierInputs].find((i) => (i.type === "radio" ? i.checked : true));
+      const isQuery = picked && picked.value === "1";
+      catWrap.hidden = isQuery; catSel.required = !isQuery;
+      const dl = document.getElementById("desc-label"), dh = document.getElementById("desc-hint"), db = document.getElementById("desc-box");
+      if (dl && dh && db) {
+        dl.textContent = isQuery ? "What would you like to know?" : "What happened?";
+        dh.textContent = isQuery ? "Be as specific as you can. At least 15 characters." : "Include dates, amounts and who was involved. At least 30 characters.";
+        db.minLength = isQuery ? 15 : 30;
+      }
+      const row = document.getElementById("cat-row"); if (row) row.hidden = isQuery;
+    };
+    tierInputs.forEach((i) => i.addEventListener("change", sync)); sync();
+  }
+
   // case board: drag a card to a column. The drop only opens the right form; the
   // server validates the move, applies it, and writes the history/audit entry.
-  const board = document.querySelector(".kanban");
+  const board = document.querySelector(".kanban-root");
   if (board) {
     const dlg = document.getElementById("dlg-move");
     const form = document.getElementById("move-form");
@@ -74,7 +93,8 @@
         e.dataTransfer.effectAllowed = "move";
         try { e.dataTransfer.setData("text/plain", card.dataset.case); } catch (err) {}
         const moves = card.dataset.moves.split(",");
-        board.querySelectorAll(".kcol").forEach((col) => {
+        const lane = card.closest(".kanban");
+        lane.querySelectorAll(".kcol").forEach((col) => {
           col.classList.toggle("drop-ok", moves.includes(col.dataset.status));
           col.classList.toggle("drop-no", col.dataset.status !== card.dataset.from && !moves.includes(col.dataset.status));
         });
@@ -86,11 +106,12 @@
     });
     board.querySelectorAll(".kcol").forEach((col) => {
       col.addEventListener("dragover", (e) => {
-        if (dragged && dragged.dataset.moves.split(",").includes(col.dataset.status)) e.preventDefault();
+        if (dragged && col.closest(".kanban") === dragged.closest(".kanban") &&
+            dragged.dataset.moves.split(",").includes(col.dataset.status)) e.preventDefault();
       });
       col.addEventListener("drop", (e) => {
         e.preventDefault();
-        if (!dragged) return;
+        if (!dragged || col.closest(".kanban") !== dragged.closest(".kanban")) return;   // stay in the lane
         const to = col.dataset.status, from = dragged.dataset.from, num = dragged.dataset.case;
         const moves = dragged.dataset.moves.split(",");
         if (to === from) return;

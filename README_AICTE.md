@@ -17,7 +17,7 @@ cd aicte-dashboard
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python app.py          # http://127.0.0.1:5000, no database or keys needed
-.venv\Scripts\python -m pytest       # 124 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
+.venv\Scripts\python -m pytest       # 139 tests (+8 PostgreSQL tests when TEST_DATABASE_URL is set)
 ```
 
 ## Architecture
@@ -36,6 +36,14 @@ harness were kept; the campus domain (locations, recurring groups, pulse, PWA, f
 replaced. The original campus test suite (277 tests, all passing at the start) was removed with the
 features it covered. From NEVO only the Cohere embedding *pattern* (1536-dimension check, fail loudly
 on mismatch) was followed; the code is our own.
+
+### Tiers
+
+Tier 1 **Query** (question or information request; category "General query"; 7-day deadline; excluded
+from overlap detection), Tier 2 **Problem** (a complaint; 8 categories with their own deadlines),
+Tier 3 **Escalated** (set automatically by an escalation). The tier is a case field, a filter, a column in
+the list, a lane in *Board by tier*, and a row of the dashboard's tier-wise board. Citizens pick
+*Report a problem* or *Ask a question*; the API accepts `"type": "query"`.
 
 ### Rules the code enforces (and tests prove)
 
@@ -85,7 +93,7 @@ starting values. A test keeps lexical precision ≥ 0.85 and recall ≥ 0.75 on 
 
 ## Tests
 
-* 124 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
+* 139 offline tests: lifecycle and permissions, every visibility case, citizen privacy, overlap
   classification and review, embeddings (fake client: success, failure fallback, dimension
   mismatch), SLA and idempotent notifications, dashboard numbers vs stored data, reports and CSV
   injection, the seeded dataset, the **complete judge demo over HTTP**, the mobile API.

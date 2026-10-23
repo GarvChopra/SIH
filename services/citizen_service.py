@@ -58,7 +58,9 @@ def _status_block(c: dict) -> dict:
 def _summary(c: dict) -> dict:
     inst = institutions.get(c["institution_id"]) if c["institution_id"] else None
     st = _status_block(c)
+    from domain.constants import QUERY_CATEGORY
     return {"case_number": c["case_number"], "title": c["title"], "category": c["category"],
+            "kind": "Question" if c["category"] == QUERY_CATEGORY else "Complaint",
             "institution_name": inst["name"] if inst else "Not yet identified",
             "aicte_id": inst["aicte_permanent_id"] if inst else None,
             "received_at": c["received_at"], "status": c["status"], "status_label": st["label"],

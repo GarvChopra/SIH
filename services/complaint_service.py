@@ -17,6 +17,7 @@ import time
 from db import audit, bureaus, case_actions, complaints, documents, institutions, notifications, pool, users
 from domain import rbac
 from domain.constants import (BUREAU_ADMIN, CATEGORIES, CITIZEN_VISIBLE_ACTIONS, DISPOSED,
+                              ESCALATED_TIER, PROBLEM, QUERY, QUERY_CATEGORY,
                               ESCALATED, INTAKE_BUREAU_CODE, OFFICER, PENDING,
                               PRIORITIES, REGIONAL_USER, STATUS_TRANSITIONS, SUPER_ADMIN,
                               TRANSFERRED, UNDER_PROCESS)
@@ -113,14 +114,28 @@ def run_overlap_detection(cid: int) -> None:
 
 # ── create ─────────────────────────────────────────────────────────────────
 
-def create(actor: dict, *, title, description, category, priority="medium", aicte_id=None,
-           institution_name=None, bureau_id=None, received_at=None) -> dict:
+def _resolve_tier(tier, category):
+    """Tier 1 Query always uses the General query category; Tier 2 needs a real category."""
+    try:
+        tier = int(tier or PROBLEM)
+    except (TypeError, ValueError):
+        raise ValidationError("choose Query or Problem")
+    if tier not in (QUERY, PROBLEM):
+        raise ValidationError("choose Query or Problem")
+    if tier == QUERY:
+        return tier, QUERY_CATEGORY
+    if category not in CATEGORIES:
+        raise ValidationError("unknown category")
+    return tier, category
+
+
+def create(actor: dict, *, title, description, category=None, priority="medium", aicte_id=None,
+           institution_name=None, bureau_id=None, received_at=None, tier=PROBLEM) -> dict:
     _require_perm(actor, rbac.COMPLAINT_CREATE)
     title, description = (title or "").strip(), (description or "").strip()
     if len(title) < _MIN_TEXT or len(description) < _MIN_TEXT:
         raise ValidationError("title and description are required")
-    if category not in CATEGORIES:
-        raise ValidationError("unknown category")
+    tier, category = _resolve_tier(tier, category)
     if priority not in PRIORITIES:
         raise ValidationError("unknown priority")
 
@@ -147,7 +162,7 @@ def create(actor: dict, *, title, description, category, priority="medium", aict
         c = complaints.insert(
             institution_id=inst["id"] if inst else None,
             institution_name_stated=(institution_name or "").strip() or None,
-            title=title, description=description, category=category, priority=priority,
+            title=title, description=description, category=category, tier=tier, priority=priority,
             bureau_id=bid, received_at=received,
             expected_disposal_at=sla_service.disposal_deadline(category, received),
             created_by=actor["id"])
@@ -244,7 +259,7 @@ def escalate(actor: dict, ref, remarks: str) -> dict:
     with pool.transaction():
         prev = c["status"]
         c = _record(c, "escalated", actor, from_value=prev, to_value=ESCALATED,
-                    remarks=remarks, status=ESCALATED)
+                    remarks=remarks, status=ESCALATED, tier=ESCALATED_TIER)
         audit.add(actor["username"], "complaint.escalate", target_type="complaint",
                   target_id=c["id"], detail={"from": prev})
         _notify(_super_admins() + _bureau_admins(c["bureau_id"]), "escalation",
@@ -365,20 +380,21 @@ def update_text(actor: dict, ref, title: str, description: str) -> dict:
 
 # ── citizen channel ────────────────────────────────────────────────────────
 
-def create_for_citizen(citizen: dict, *, aicte_id, category, title, description) -> dict:
+def create_for_citizen(citizen: dict, *, aicte_id, category=None, title, description,
+                       tier=PROBLEM) -> dict:
     """A citizen files against an institution picked from the registry. The case is
     received by the intake bureau (PGRC), which can transfer it onward."""
     if not rbac.has_permission(citizen["role"], rbac.CITIZEN_COMPLAIN):
         raise PermissionDenied("only registered complainants can file here")
     title, description = (title or "").strip(), (description or "").strip()
+    tier, category = _resolve_tier(tier, category)
+    what = "question" if tier == QUERY else "problem"
     if len(title) < 8:
-        raise ValidationError("give your complaint a short title (at least 8 characters)")
-    if len(description) < 30:
-        raise ValidationError("please describe the problem in at least 30 characters")
+        raise ValidationError(f"give your {what} a short title (at least 8 characters)")
+    if len(description) < (15 if tier == QUERY else 30):
+        raise ValidationError(f"please describe your {what} in at least {15 if tier == QUERY else 30} characters")
     if len(title) > 160 or len(description) > 4000:
         raise ValidationError("title or description is too long")
-    if category not in CATEGORIES:
-        raise ValidationError("choose a category")
     inst = institutions.get_by_aicte_id(aicte_id)
     if not inst:
         raise ValidationError("choose an institution from the search results")
@@ -387,7 +403,7 @@ def create_for_citizen(citizen: dict, *, aicte_id, category, title, description)
     with pool.transaction():
         c = complaints.insert(
             institution_id=inst["id"], title=title, description=description, category=category,
-            priority="medium", bureau_id=intake["id"], citizen_id=citizen["id"],
+            tier=tier, priority="medium", bureau_id=intake["id"], citizen_id=citizen["id"],
             channel="citizen", received_at=received,
             expected_disposal_at=sla_service.disposal_deadline(category, received),
             created_by=citizen["id"])

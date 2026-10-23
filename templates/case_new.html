@@ -16,7 +16,10 @@
         <span class="hint">Required if no ID is given. A suggested match then waits for human approval.</span></label>
     </div>
     <div class="row">
-      <label class="f">Category<select name="category" required><option value="">Choose a category</option>{% for c in categories %}<option {{ 'selected' if f.get('category') == c }}>{{ c }}</option>{% endfor %}</select></label>
+      <label class="f">Type<select name="tier" id="tier-sel"><option value="2" {{ 'selected' if f.get('tier') != '1' }}>Tier 2 &middot; Problem (a complaint to investigate)</option><option value="1" {{ 'selected' if f.get('tier') == '1' }}>Tier 1 &middot; Query (a question or information request)</option></select></label>
+    </div>
+    <div class="row" id="cat-row">
+      <label class="f" id="cat-wrap">Category<select name="category" id="cat-sel" required><option value="">Choose a category</option>{% for c in categories %}<option {{ 'selected' if f.get('category') == c }}>{{ c }}</option>{% endfor %}</select></label>
       <label class="f">Priority<select name="priority">{% for p in priorities %}<option value="{{ p }}" {{ 'selected' if (f.get('priority') or 'medium') == p }}>{{ p | capitalize }}</option>{% endfor %}</select></label>
     </div>
     {% if current_user.role == 'super_admin' %}

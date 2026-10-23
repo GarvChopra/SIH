@@ -342,6 +342,34 @@ dialog .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px
 
 /* ---------- kanban board ---------- */
 .kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(204px,1fr);gap:10px;overflow-x:auto;padding-bottom:14px;scroll-snap-type:x proximity;align-items:start}
+.tb{display:grid;gap:14px}
+.tb-lane{border:1px solid var(--line);border-radius:12px;overflow:hidden;border-left:5px solid var(--navy-700)}
+.tb-lane.t1{border-left-color:var(--green)} .tb-lane.t3{border-left-color:var(--red)}
+.tb-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 14px;background:var(--navy-50);border-bottom:1px solid var(--line)}
+.tb-head b{color:var(--navy-900)} .tb-head div span{display:block;font-size:12.5px;color:var(--ink-2)}
+.tb-cols{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));overflow-x:auto}
+.tb-cell{display:block;padding:10px 12px;border-left:1px solid var(--line);color:var(--ink);min-width:0;border-top:3px solid var(--navy-700)}
+.tb-cell:first-child{border-left:0}
+.tb-cell:hover{text-decoration:none;background:var(--navy-50)}
+.tb-cell.k-Pending{border-top-color:var(--amber)} .tb-cell.k-Transferred{border-top-color:var(--purple)}
+.tb-cell.k-Escalated{border-top-color:var(--red)} .tb-cell.k-Disposed{border-top-color:var(--green)}
+.tb-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px}
+.tb-top b{font-size:24px;letter-spacing:0;color:var(--navy-900);line-height:1}
+.tb-card{display:block;font-size:12.5px;line-height:1.35;padding:5px 7px;margin-top:5px;background:#fff;border:1px solid var(--line);border-radius:7px;overflow-wrap:anywhere}
+.tb-card .mono{font-size:11px;color:var(--navy-800);font-weight:800}
+.tb-empty{display:block;color:var(--ink-3);font-size:12.5px;padding:5px 2px}
+.type-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.type-pick label.check{align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:11px 13px;background:#fff;cursor:pointer}
+.type-pick label.check:has(input:checked){border-color:var(--navy-700);background:var(--navy-50)}
+.kanban-root{display:grid;gap:10px}
+.lane-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--navy-100);border-left:5px solid var(--navy-700)}
+.lane-head.tier-1{border-left-color:var(--green);background:var(--green-50)}
+.lane-head.tier-2{border-left-color:var(--navy-700)}
+.lane-head.tier-3{border-left-color:var(--red);background:var(--red-50)}
+.lane-head b{display:block;color:var(--navy-900)} .lane-head span:not(.kcount){font-size:12.5px;color:var(--ink-2)}
+.ktier{display:flex;gap:5px;align-items:center}
+.tier-chip{font-size:10.5px;padding:0 7px;height:20px}
+.tier-chip.t1{background:var(--green-50);color:var(--green)} .tier-chip.t2{background:var(--navy-100);color:var(--navy-700)} .tier-chip.t3{background:var(--red-50);color:var(--red)}
 .kcol{background:var(--navy-50);border:1px solid var(--line);border-radius:12px;min-width:0;scroll-snap-align:start;border-top:3px solid var(--navy-700)}
 .kcol.k-Pending{border-top-color:var(--amber)} .kcol.k-Transferred{border-top-color:var(--purple)}
 .kcol.k-Escalated{border-top-color:var(--red)} .kcol.k-Disposed{border-top-color:var(--green)}
@@ -356,7 +384,7 @@ dialog .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px
 .kcol.drop-ok{outline:2px dashed var(--green);outline-offset:-2px;background:var(--green-50)}
 .kcol.drop-no{opacity:.6}
 .ktop{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.kid{font-size:11.5px;font-weight:800;color:var(--navy-800)}
+.kid{font-size:11.5px;font-weight:800;color:var(--navy-800);white-space:nowrap}
 .kttl{font-weight:700;color:var(--navy-900);margin:7px 0 2px;line-height:1.35;overflow-wrap:anywhere}
 .is-restricted .kttl{color:var(--ink-2);font-weight:600;font-style:italic}
 .ksub{font-size:12.5px;color:var(--ink-2);overflow-wrap:anywhere}

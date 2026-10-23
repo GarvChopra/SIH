@@ -13,14 +13,14 @@ python -m venv .venv
 ```
 
 Open **http://127.0.0.1:5000**. With no `.env` at all the app starts on an in-memory store and
-seeds itself: 30 institutions, about 165 complaints, 7 bureaus, 17 staff accounts, 5 citizens.
+seeds itself: 30 institutions, about 190 cases (24 Tier 1 queries, the rest Tier 2/3), 7 bureaus, 17 staff accounts, 5 citizens.
 Startup takes a few seconds (password hashing). Nothing needs editing by hand during the demo.
 
 * **Reset the demo:** stop the server (Ctrl+C) and start it again. Everything is re-seeded.
 * **Another port:** `set PORT=5055` before starting.
 * **Persistent data (optional):** set `DATABASE_URL` to a **fresh** PostgreSQL database
   (it will not migrate the old campus schema), then run
-  `python -m scripts.seed_aicte_demo` once. To reseed, drop and recreate the database.
+  `python -m scripts.seed_aicte_demo` once (against PostgreSQL this takes several minutes, because every write is its own round trip; start it well before the demo). To reseed, drop and recreate the database.
 * **Optional Groq AI judge:** put `GROQ_API_KEY=...` in a `.env` file (copy `.env.example`) and restart. Groq has no embeddings, so it scores each similar pair 0 to 1 as "same allegation?" and adds a one-line reason on the review screen. Pairs the keyword matcher finds clearly unrelated are not sent. Any failure falls back to offline matching. Unmeasured; test it once before presenting because filing a case then waits on the network (8 s timeout).
 * **Optional AI embeddings (takes priority over Groq):** `pip install cohere==5.15.0` and set `COHERE_API_KEY`. Without it the
   offline keyword matcher is used (this is what the demo is tested with).
@@ -97,6 +97,15 @@ Use two browser windows (or one normal and one private) so the citizen and the o
     disposal rate, deadline compliance, overlap. Open one, **CSV** or **Print / save as PDF**.
 14. **Negative example.** Open ABC Engineering College (`123456`): four cases, only the fee pair is
     flagged; the faculty and infrastructure cases are listed but raise no alert.
+
+**Tiers (how a matter is handled).** Every case has a tier:
+**Tier 1 Query** (a question or information request, 7-day target, never triggers overlap checks),
+**Tier 2 Problem** (a complaint that needs investigation, category-based deadline) and
+**Tier 3 Escalated** (set automatically when a case is escalated). Citizens choose *Report a problem* or
+*Ask a question* when filing; officials choose the *Type* on New case. See it in two places:
+the **Tier-wise workflow board** on the Dashboard (a lane per tier, a column per status, live counts that
+link to the filtered board, the most urgent cards in each cell) and **Cases → Board by tier**.
+Filter any list by tier.
 
 **Visual Regulatory Workflow Management (board view).** *Cases* → **Board**: one column per status,
 cards show case number, bureau, institution, category, officer, deadline (overdue in red), an

@@ -4,12 +4,12 @@ from db.table import Table
 from domain.constants import CODE_PAD, CODE_PREFIX
 
 COLS = ("id", "case_number", "institution_id", "institution_name_stated", "citizen_id", "channel", "title",
-        "description", "category", "priority", "status", "bureau_id", "officer_id",
+        "description", "category", "tier", "priority", "status", "bureau_id", "officer_id",
         "received_at", "expected_disposal_at", "last_action_at", "last_action",
         "next_action", "text_version", "created_by", "created_at", "updated_at")
 
 T = Table("complaints", COLS, defaults={"status": "Pending", "priority": "medium",
-                                        "text_version": 1, "channel": "official"})
+                                        "text_version": 1, "channel": "official", "tier": 2})
 _REQUIRED = ("title", "description", "category", "bureau_id")
 
 

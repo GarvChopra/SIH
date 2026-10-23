@@ -12,7 +12,9 @@ DAY = 86400.0
 
 
 def disposal_deadline(category: str, received_at: float) -> float:
-    return received_at + SLA_DAYS.get(category, DEFAULT_SLA_DAYS) * DAY
+    from domain.constants import QUERY_CATEGORY, QUERY_SLA_DAYS
+    days = QUERY_SLA_DAYS if category == QUERY_CATEGORY else SLA_DAYS.get(category, DEFAULT_SLA_DAYS)
+    return received_at + days * DAY
 
 
 def state(c: dict, now: float | None = None):

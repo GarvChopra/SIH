@@ -14,7 +14,7 @@ from domain.constants import (ACTIVE_STATUSES, CONFIRMED, DISPOSED, OVERLAPPING_
 from services import access_service, sla_service
 from services.errors import NotFound
 
-FILTER_KEYS = ("institution", "aicte_id", "case_number", "bureau", "region", "category",
+FILTER_KEYS = ("tier", "institution", "aicte_id", "case_number", "bureau", "region", "category",
                "status", "officer", "date_from", "date_to", "deadline", "overlap", "q")
 
 
@@ -65,6 +65,8 @@ def _matches(row, f) -> bool:
             and row["bureau_code"] != f["bureau"]:
         return False
     if f.get("region") and (row["region"] or "").lower() != f["region"].lower():
+        return False
+    if f.get("tier") and str(row.get("tier")) != str(f["tier"]):
         return False
     if f.get("category") and row["category"] != f["category"]:
         return False

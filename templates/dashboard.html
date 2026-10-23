@@ -27,6 +27,25 @@
   {{ ui.kpi("Unlinked cases", d.unlinked, "/institutions/aliases" if can("alias.review") else "/cases", "warn" if d.unlinked else "", "no AICTE ID yet") }}
 </div>
 
+<section class="card" style="margin-bottom:18px"><header><h3>Tier-wise workflow board</h3><a href="/cases?view=board&group=tier">Open the board</a></header>
+  <div class="body tb">
+    {% for lane in d.tier_board %}
+    <div class="tb-lane t{{ lane.tier }}">
+      <div class="tb-head"><div><b>{{ lane.info.name }} &middot; {{ lane.info.label }}</b><span>{{ lane.info.about }}</span></div>
+        <span class="small muted nowrap"><a href="/cases?tier={{ lane.tier }}"><b>{{ lane.total }}</b> total</a> &middot; {{ lane.active }} active{% if lane.overdue %} &middot; <b class="k-over">{{ lane.overdue }} overdue</b>{% endif %}</span></div>
+      <div class="tb-cols">
+        {% for cell in lane.cells %}
+        <a class="tb-cell k-{{ cell.status | replace(' ', '-') }}" href="{{ cell.href }}">
+          <div class="tb-top"><span>{{ cell.status }}</span><b>{{ cell.count }}</b></div>
+          {% for r in cell.cards %}<span class="tb-card"><span class="mono">{{ r.case_number[-5:] }}</span> {% if r.restricted %}<i>Restricted &middot; {{ r.bureau_code }}</i>{% else %}{{ r.title }}{% endif %}{% if r.sla == 'overdue' %} <b class="k-over">overdue</b>{% endif %}</span>{% else %}<span class="tb-empty">&mdash;</span>{% endfor %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <p class="small faint" style="margin:2px 0 0">Tier 1 queries are answered fast (7-day target) and never trigger overlap checks. Escalating a case moves it to Tier 3.</p>
+  </div></section>
+
 <div class="grid g-main" style="margin-bottom:18px">
   <section class="card"><header><h3>Bureau-wise workload</h3><a href="/reports/bureau-wise">Report</a></header><div class="body">
     {% set rows = [] %}{% for r in d.bureau_rows %}{% if r.total %}{% set _ = rows.append({'label': r.bureau.code ~ ' · ' ~ r.bureau.name, 'value': r.active, 'href': '/cases?bureau=' ~ r.bureau.id, 'note': (r.overdue ~ ' overdue') if r.overdue else '', 'tone': 'bad' if r.overdue else ''}) %}{% endif %}{% endfor %}

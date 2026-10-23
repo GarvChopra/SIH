@@ -20,8 +20,23 @@ SLA_DAYS = {
     "Certificates withheld": 20,
     "Examination irregularities": 30,
 }
-CATEGORIES = list(SLA_DAYS)
+CATEGORIES = list(SLA_DAYS)              # categories of a Problem (tier 2)
 DEFAULT_SLA_DAYS = 30
+
+# ── tiers: how a matter is handled ─────────────────────────────────────────
+# Tier 1 Query     a question or request for information; answered fast, no investigation
+# Tier 2 Problem   a complaint that needs a bureau to investigate
+# Tier 3 Escalated a case promoted for senior / regulatory review (set automatically on escalation)
+QUERY, PROBLEM, ESCALATED_TIER = 1, 2, 3
+TIERS = [QUERY, PROBLEM, ESCALATED_TIER]
+TIER_INFO = {
+    QUERY:          {"name": "Tier 1", "label": "Query", "about": "Questions and requests for information. Answered quickly; no investigation."},
+    PROBLEM:        {"name": "Tier 2", "label": "Problem", "about": "Complaints that need a bureau to investigate and act."},
+    ESCALATED_TIER: {"name": "Tier 3", "label": "Escalated", "about": "Cases promoted for senior or regulatory review."},
+}
+QUERY_CATEGORY = "General query"
+QUERY_SLA_DAYS = 7
+ALL_CATEGORIES = CATEGORIES + [QUERY_CATEGORY]
 
 PRIORITIES = ["low", "medium", "high", "critical"]
 

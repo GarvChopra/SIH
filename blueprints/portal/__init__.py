@@ -5,7 +5,7 @@ from flask import (Blueprint, abort, flash, g, jsonify, redirect, render_templat
                    send_file)
 
 from db import audit, bureaus, case_actions, documents, institutions, notifications, users
-from domain.constants import (CATEGORIES, PRIORITIES, REGIONS, ROLE_LABELS, STAFF_ROLES,
+from domain.constants import (ALL_CATEGORIES, CATEGORIES, PRIORITIES, REGIONS, ROLE_LABELS, STAFF_ROLES,
                               STATUSES, SUPER_ADMIN)
 from domain import rbac
 from services import (access_service, case_view_service, citizen_service, complaint_service,
@@ -138,11 +138,15 @@ def cases():
     rows = case_view_service.list_cases(_user(), f)
     from urllib.parse import urlencode
     view = "board" if request.args.get("view") == "board" else "list"
-    qs = urlencode([(k, v) for k, v in request.args.items(multi=True) if k != "view" and v])
-    return render_template("cases.html", rows=rows, f=request.args, view=view, qs=qs,
-                           board=_board(_user(), rows) if view == "board" else None,
+    group = "tier" if request.args.get("group") == "tier" else "status"
+    qs = urlencode([(k, v) for k, v in request.args.items(multi=True)
+                    if k not in ("view", "group") and v])
+    from domain.constants import TIER_INFO
+    return render_template("cases.html", rows=rows, f=request.args, view=view, qs=qs, group=group,
+                           tier_info=TIER_INFO,
+                           board=_board(_user(), rows, group) if view == "board" else None,
                            bureaus=bureaus.list_all(),
-                           categories=CATEGORIES, statuses=STATUSES, regions=REGIONS,
+                           categories=ALL_CATEGORIES, statuses=STATUSES, regions=REGIONS,
                            officers=[u for u in users.list_staff()
                                      if u["role"] in ("officer", "regional_user")])
 
@@ -172,17 +176,32 @@ def _moves(user, r):
     return out
 
 
-def _board(user, rows):
+def _columns(user, rows, limit):
     """Kanban columns: one per status, capped so the page stays light."""
     cols = []
     for s in STATUSES:
         mine = [r for r in rows if r["status"] == s]
-        cards = mine[:BOARD_LIMIT]
+        cards = mine[:limit]
         for r in cards:
             r["moves"] = _moves(user, r)
         cols.append({"status": s, "total": len(mine), "cards": cards,
-                     "more": max(0, len(mine) - BOARD_LIMIT)})
+                     "more": max(0, len(mine) - limit)})
     return cols
+
+
+def _board(user, rows, group="status"):
+    """Board lanes. group="status": one lane of status columns. group="tier": one lane per
+    tier (Query / Problem / Escalated), each with its own status columns."""
+    from domain.constants import TIER_INFO, TIERS
+    if group == "tier":
+        lanes = []
+        for t in TIERS:
+            mine = [r for r in rows if r.get("tier") == t]
+            lanes.append({"key": t, "info": TIER_INFO[t], "total": len(mine),
+                          "columns": _columns(user, mine, 10)})
+        return lanes
+    return [{"key": None, "info": None, "total": len(rows),
+             "columns": _columns(user, rows, BOARD_LIMIT)}]
 
 
 def _safe_next(url):
@@ -210,7 +229,8 @@ def case_new():
         try:
             c = complaint_service.create(
                 user, title=f.get("title"), description=f.get("description"),
-                category=f.get("category"), priority=f.get("priority") or "medium",
+                category=f.get("category"), tier=f.get("tier") or 2,
+                priority=f.get("priority") or "medium",
                 aicte_id=f.get("aicte_id"), institution_name=f.get("institution_name"),
                 bureau_id=int(f["bureau_id"]) if (f.get("bureau_id") or "").isdigit() else None)
             flash(f"Case {c['case_number']} registered.", "ok")

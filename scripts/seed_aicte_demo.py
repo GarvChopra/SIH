@@ -55,6 +55,16 @@ INSTITUTIONS = [
     ("100126", "Triveni Institute of Management Studies", "Prayagraj, Uttar Pradesh", "North"),
     ("100127", "Rayalaseema College of Engineering", "Tirupati, Andhra Pradesh", "South"),
 ]
+QUERIES = [
+    ("Is this college approved by AICTE?", "Please confirm whether this institution is currently approved by AICTE for the engineering programmes it advertises."),
+    ("Refund rules after withdrawing admission", "Which rules decide how much fee a college must refund if a student withdraws before the session starts?"),
+    ("How to verify a faculty member's qualification", "What documents can a student ask for to check that a faculty member meets the minimum qualification norms?"),
+    ("Maximum fee a college can charge", "Where can I find the fee structure approved for this college and the programme I am joining?"),
+    ("Status of my earlier application", "I applied for a transfer certificate last month. Whom should I contact at the college and what is the time limit?"),
+    ("Is hostel accommodation compulsory?", "The college says hostel stay is compulsory in the first year. Is that allowed under AICTE norms?"),
+    ("Which bureau handles approval issues?", "Which AICTE bureau should I write to about a course that is advertised but not listed as approved?"),
+    ("Lateral entry admission rules", "Can a diploma holder join the second year directly and which documents does the college need to check?"),
+]
 RESERVED = {"123456", "200001"}        # planted scenario / left empty for the live demo
 
 TEMPLATES = {
@@ -238,8 +248,8 @@ def _pick_outcome(rng, age_days, sla_days):
     if age_days < 12:
         weights = [("pending", 60), ("under_process", 40)]
     elif age_days > sla_days * 0.8:
-        weights = [("disposed", 58), ("under_process", 16), ("escalated", 9), ("pending", 6),
-                   ("transferred", 6), ("transferred_accepted", 5)]
+        weights = [("disposed", 72), ("under_process", 9), ("escalated", 8), ("pending", 3),
+                   ("transferred", 3), ("transferred_accepted", 5)]
     r = rng.uniform(0, sum(w for _, w in weights))
     for name, w in weights:
         r -= w
@@ -262,7 +272,7 @@ def build(seed: int = 7) -> dict:
     rng = random.Random(seed)
     now = _real_time()
     taken = {}                                     # aicte id -> categories already used there
-    made = {"planted": 0, "random": 0, "citizen": 0}
+    made = {"planted": 0, "random": 0, "citizen": 0, "query": 0}
     ai_off = ov.ai_disabled()            # never call Cohere/Groq for hundreds of seeded pairs
     ai_off.__enter__()
     try:
@@ -370,6 +380,18 @@ def build(seed: int = 7) -> dict:
             _advance(rng, now, c, _pick_outcome(rng, ago, SLA_DAYS[cat]))
             made["random"] += 1
 
+        # ---------- Tier 1 queries: questions answered by the helpdesk (PGRC) ----------
+        from domain.constants import SLA_DAYS
+        spots = [aid for aid, *_ in INSTITUTIONS if aid not in RESERVED]
+        for _i in range(24):
+            aid, ago = rng.choice(spots), rng.uniform(1, 40)
+            title, desc = rng.choice(QUERIES)
+            _clock(now - ago * DAY)
+            q = cs.create(_actor("pgrc.admin"), aicte_id=aid, title=title, description=desc,
+                          tier=1, priority="low", received_at=now - ago * DAY)
+            _advance(rng, now, q, _pick_outcome(rng, ago, 7))
+            made["query"] += 1
+
         # ---------- citizens ----------
         citizens = {}
         for uname, full in [("priya.nair", "Priya Nair"), ("rohan.mehta", "Rohan Mehta"),
@@ -378,16 +400,18 @@ def build(seed: int = 7) -> dict:
             citizens[uname] = ctz.register(uname, full, "demo12345", f"{uname}@example.invalid")
         citizens["citizen.demo"] = users.get_by_username("citizen.demo")
 
-        def citizen_case(user, aid, cat, ago, outcome, text=None):
-            if cat in taken.get(aid, set()):
+        def citizen_case(user, aid, cat, ago, outcome, text=None, tier=2):
+            if tier == 2 and cat in taken.get(aid, set()):
                 cat = next(c for c in TEMPLATES if c not in taken.get(aid, set()))
             u = citizens[user]
             actor = {"id": u["id"], "username": u["username"], "display_name": u["display_name"],
                      "role": "citizen", "bureau_id": None, "region": None, "department": None}
             _clock(now - ago * DAY)
-            title, desc = text or _fill(rng.choice(TEMPLATES[cat]), rng)
-            c = cs.create_for_citizen(actor, aicte_id=aid, category=cat, title=title, description=desc)
-            use(aid, cat)
+            title, desc = text or (rng.choice(QUERIES) if tier == 1 else _fill(rng.choice(TEMPLATES[cat]), rng))
+            c = cs.create_for_citizen(actor, aicte_id=aid, category=cat, tier=tier, title=title,
+                                      description=desc)
+            if tier == 2:
+                use(aid, cat)
             _advance(rng, now, c, outcome)
             if outcome == "under_process":
                 _clock(min(now - 60, c["received_at"] + 9 * DAY))
@@ -408,6 +432,8 @@ def build(seed: int = 7) -> dict:
         citizen_case("rohan.mehta", "100118", "Unauthorized fees", 27, "under_process")
         citizen_case("sneha.iyer", "100120", "Examination irregularities", 19, "under_process")
         citizen_case("kabir.singh", "100122", "Admission irregularities", 8, "pending")
+        citizen_case("citizen.demo", "100108", None, 3, "pending", tier=1)
+        citizen_case("priya.nair", "100110", None, 16, "disposed", tier=1)
     finally:
         _restore()
         ai_off.__exit__(None, None, None)

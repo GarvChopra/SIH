@@ -40,7 +40,7 @@
   <div class="stack">
     <section class="card"><header><h3>Details</h3></header><div class="body"><dl class="kv">
       <dt>Institution</dt><dd>{{ c.institution_name }}{% if c.aicte_id %}<br><span class="faint small">AICTE ID {{ c.aicte_id }}</span>{% endif %}</dd>
-      <dt>Category</dt><dd>{{ c.category }}</dd>
+      <dt>Type</dt><dd>{{ c.kind }}{% if c.kind == 'Complaint' %} &middot; {{ c.category }}{% endif %}</dd>
       <dt>Filed on</dt><dd>{{ c.received_at | day }}</dd>
       <dt>Last update</dt><dd>{{ c.last_update | when if c.last_update else '—' }}</dd></dl></div></section>
     <section class="card"><header><h3>Your evidence</h3></header><div class="body">

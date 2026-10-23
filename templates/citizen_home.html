@@ -18,7 +18,7 @@
       <a class="case-tile" href="/my/c/{{ r.case_number }}">
         <div class="top-row"><span class="mono" style="font-weight:800;color:var(--navy-800)">{{ r.case_number }}</span>{{ ui.status(r.status) }}</div>
         <div class="ttl">{{ r.title }}</div>
-        <div class="small muted">{{ r.institution_name }} &middot; {{ r.category }} &middot; filed {{ r.received_at | day }}</div>
+        <div class="small muted">{{ r.kind }} &middot; {{ r.institution_name }}{% if r.kind == 'Complaint' %} &middot; {{ r.category }}{% endif %} &middot; filed {{ r.received_at | day }}</div>
         <div class="mini-track" aria-label="Progress: {{ r.status_label }}">{% for i in range(4) %}<i class="{{ 'on' if (i < r.step or r.status == 'Disposed') else 'now' if i == r.step else '' }}"></i>{% endfor %}</div>
       </a>
     {% else %}

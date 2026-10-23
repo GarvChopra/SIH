@@ -12,7 +12,8 @@ import io
 import time
 
 from db import bureaus, case_actions, case_links, complaints, institutions
-from domain.constants import ACTIVE_STATUSES, DISPOSED, OVERDUE, REGIONS, STATUSES, CATEGORIES
+from domain.constants import (ACTIVE_STATUSES, ALL_CATEGORIES, DISPOSED, OVERDUE, REGIONS,
+                              STATUSES)
 from services import access_service, overlap_service, sla_service
 
 DAY = 86400.0
@@ -123,7 +124,7 @@ def _disposal_rate(user, now):
     cols = ["Category", "Total", "Disposed", "Disposal rate", "Avg days to dispose"]
     rows = _rows(user)
     out = []
-    for cat in CATEGORIES:
+    for cat in ALL_CATEGORIES:
         mine = [c for c in rows if c["category"] == cat]
         if not mine:
             continue

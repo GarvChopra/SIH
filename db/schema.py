@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS complaints (
     title                   TEXT NOT NULL,
     description             TEXT NOT NULL,
     category                TEXT NOT NULL,
+    tier                    INTEGER NOT NULL DEFAULT 2 CHECK (tier IN (1,2,3)),
     priority                TEXT NOT NULL DEFAULT 'medium'
                             CHECK (priority IN ('low','medium','high','critical')),
     status                  TEXT NOT NULL DEFAULT 'Pending'

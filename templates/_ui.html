@@ -27,6 +27,11 @@
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ p.get(name, p["info"]) | safe }}</svg>
 {%- endmacro %}
 
+{% macro tier(t) -%}
+{%- set info = {1: ['T1', 'Query'], 2: ['T2', 'Problem'], 3: ['T3', 'Escalated']}.get(t) -%}
+{%- if info -%}<span class="chip tier-chip t{{ t }} plain" title="Tier {{ t }}: {{ info[1] }}">{{ info[0] }} {{ info[1] }}</span>{%- endif -%}
+{%- endmacro %}
+
 {% macro status(s) -%}<span class="chip s-{{ s | replace(' ', '-') }}">{{ s }}</span>{%- endmacro %}
 
 {% macro sla(state) -%}
@@ -84,7 +89,7 @@
 {% macro case_table(rows, show_institution=True) -%}
 {% if rows %}
 <div class="table-wrap"><table class="t">
-  <thead><tr><th>Case</th>{% if show_institution %}<th>Institution</th>{% endif %}<th>Bureau</th><th>Category</th><th>Status</th><th>Deadline</th><th>Received</th></tr></thead>
+  <thead><tr><th>Case</th>{% if show_institution %}<th>Institution</th>{% endif %}<th>Tier</th><th>Bureau</th><th>Category</th><th>Status</th><th>Deadline</th><th>Received</th></tr></thead>
   <tbody>
   {% for r in rows %}
   <tr>
@@ -92,6 +97,7 @@
       <span class="title" style="margin-top:3px">{% if r.restricted %}<span class="chip restricted plain">Restricted</span> <span class="faint small">details held by {{ r.bureau_code }}</span>{% else %}{{ r.title }}{% endif %}</span>
       {% if r.overlap %}<span class="chip overlap plain" style="margin-top:4px">Overlap flagged</span>{% endif %}</td>
     {% if show_institution %}<td>{% if r.aicte_id %}<a href="/institutions/{{ r.aicte_id }}">{{ r.institution_label }}</a><span class="sub">ID {{ r.aicte_id }}{% if r.region %} · {{ r.region }}{% endif %}</span>{% else %}<span class="muted">{{ r.institution_label }}</span>{% endif %}</td>{% endif %}
+    <td>{{ tier(r.tier) }}</td>
     <td><span class="tag">{{ r.bureau_code }}</span></td>
     <td>{{ r.category }}</td>
     <td>{{ status(r.status) }}</td>

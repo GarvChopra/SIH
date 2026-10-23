@@ -6,7 +6,7 @@
 <div class="crumbs"><a href="/cases">Cases</a> / <span class="mono">{{ c.case_number }}</span></div>
 <div class="page-head">
   <div style="min-width:0">
-    <div class="actions" style="margin-bottom:8px">{{ ui.status(c.status) }}{{ ui.sla(c.sla) }}{{ ui.priority(c.priority) }}{% if c.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if c.channel == 'citizen' and d.full %}<span class="chip plain">Citizen complaint</span>{% endif %}</div>
+    <div class="actions" style="margin-bottom:8px">{{ ui.status(c.status) }}{{ ui.tier(c.tier) }}{{ ui.sla(c.sla) }}{{ ui.priority(c.priority) }}{% if c.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if c.channel == 'citizen' and d.full %}<span class="chip plain">Citizen complaint</span>{% endif %}</div>
     <h1 style="overflow-wrap:anywhere">{{ c.title }}</h1>
     <p class="mono">{{ c.case_number }} &middot; {{ c.bureau_code }}</p>
   </div>

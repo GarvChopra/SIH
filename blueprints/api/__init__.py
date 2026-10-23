@@ -92,7 +92,9 @@ def institutions():
 @bp.get("/categories")
 def categories():
     u, err = _need_citizen()
-    return err or jsonify({"categories": CATEGORIES})
+    return err or jsonify({"categories": CATEGORIES,
+                           "types": [{"id": "complaint", "label": "Report a problem"},
+                                     {"id": "query", "label": "Ask a question"}]})
 
 
 @bp.get("/complaints")
@@ -109,6 +111,7 @@ def create_complaint():
     b = request.get_json(silent=True) or {}
     c = complaint_service.create_for_citizen(
         u, aicte_id=b.get("aicte_id"), category=b.get("category"),
+        tier=1 if str(b.get("type", "")).lower() == "query" else 2,
         title=b.get("title"), description=b.get("description"))
     return jsonify({"tracking_id": c["case_number"],
                     "complaint": citizen_service.detail(u, c["case_number"])["case"]}), 201

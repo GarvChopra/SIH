@@ -10,18 +10,20 @@
 <div class="page-head" style="margin-bottom:12px">
   <div class="pill-nav" aria-label="Case view">
     <a href="/cases?{{ qs }}" class="{{ 'on' if view == 'list' }}">List</a>
-    <a href="/cases?{{ qs ~ '&' if qs }}view=board" class="{{ 'on' if view == 'board' }}">Board</a>
+    <a href="/cases?{{ qs ~ '&' if qs }}view=board" class="{{ 'on' if view == 'board' and group == 'status' }}">Board by status</a>
+    <a href="/cases?{{ qs ~ '&' if qs }}view=board&group=tier" class="{{ 'on' if view == 'board' and group == 'tier' }}">Board by tier</a>
   </div>
-  {% if view == 'board' %}<div class="actions"><span class="faint small">Drag a card to a column to change its status. Every move is checked against the rules and recorded in the case history.</span>{% if my_bureau %}<a class="btn ghost sm" href="/cases?view=board&bureau={{ my_bureau.id }}">{{ my_bureau.code }} board</a><a class="btn ghost sm" href="/cases?view=board">All bureaus</a>{% endif %}</div>{% endif %}
+  {% if view == 'board' %}<div class="actions"><span class="faint small">Drag a card to a column to change its status. Every move is checked against the rules and recorded in the case history.</span>{% if my_bureau %}<a class="btn ghost sm" href="/cases?view=board{{ '&group=tier' if group == 'tier' }}&bureau={{ my_bureau.id }}">{{ my_bureau.code }} board</a><a class="btn ghost sm" href="/cases?view=board{{ '&group=tier' if group == 'tier' }}">All bureaus</a>{% endif %}</div>{% endif %}
 </div>
 
 <details class="card" style="margin-bottom:18px" {{ 'open' if view == 'list' }}>
 <summary style="padding:12px 18px;font-weight:700;color:var(--navy-900);cursor:pointer">Filters{% if qs %} <span class="chip plain" style="margin-left:6px">active</span>{% endif %}</summary>
 <form method="get" action="/cases" style="border-top:1px solid var(--line)">
-{% if view == 'board' %}<input type="hidden" name="view" value="board">{% endif %}
+{% if view == 'board' %}<input type="hidden" name="view" value="board">{% if group == 'tier' %}<input type="hidden" name="group" value="tier">{% endif %}{% endif %}
   <div class="body">
     <div class="filters">
       <label class="f f-wide">Search<input type="search" name="q" value="{{ f.get('q','') }}" placeholder="Case no., institution, title or text"></label>
+      <label class="f">Tier<select name="tier"><option value="">All tiers</option>{% for t, info in tier_info.items() %}<option value="{{ t }}" {{ 'selected' if f.get('tier') == t|string }}>{{ info.name }} &middot; {{ info.label }}</option>{% endfor %}</select></label>
       <label class="f">Institution<input type="text" name="institution" value="{{ f.get('institution','') }}" placeholder="Name contains"></label>
       <label class="f">AICTE ID<input type="text" name="aicte_id" value="{{ f.get('aicte_id','') }}" placeholder="e.g. 123456"></label>
       <label class="f">Case number<input type="text" name="case_number" value="{{ f.get('case_number','') }}" placeholder="AICTE-CMP-"></label>
@@ -35,14 +37,22 @@
       <label class="f">Received to<input type="date" name="date_to" value="{{ f.get('date_to','') }}"></label>
       <label class="check" style="padding-bottom:10px"><input type="checkbox" name="overlap" value="1" {{ 'checked' if f.get('overlap') in ('1','true','yes') }}> Overlap flagged only</label>
     </div>
-    <div class="actions" style="margin-top:14px"><button class="btn" type="submit">Apply filters</button><a class="btn ghost" href="/cases">Clear</a></div>
+    <div class="actions" style="margin-top:14px"><button class="btn" type="submit">Apply filters</button><a class="btn ghost" href="/cases{{ '?view=board' ~ ('&group=tier' if group == 'tier') if view == 'board' }}">Clear</a></div>
   </div>
 </form>
 </details>
 
 {% if view == 'board' %}
-<div class="kanban" aria-label="Case board">
-  {% for col in board %}
+<div class="kanban-root">
+{% for lane in board %}
+  {% if lane.info %}
+  <div class="lane-head tier-{{ lane.key }}">
+    <div><b>{{ lane.info.name }} &middot; {{ lane.info.label }}</b><span>{{ lane.info.about }}</span></div>
+    <span class="kcount">{{ lane.total }}</span>
+  </div>
+  {% endif %}
+  <div class="kanban" aria-label="{{ lane.info.label ~ ' lane' if lane.info else 'Case board' }}">
+  {% for col in lane.columns %}
   <section class="kcol k-{{ col.status | replace(' ', '-') }}" data-status="{{ col.status }}">
     <header><h3>{{ col.status }}</h3><span class="kcount">{{ col.total }}</span></header>
     <div class="kcards">
@@ -52,17 +62,19 @@
         <div class="ktop"><span class="mono kid">{{ r.case_number }}</span><span class="tag">{{ r.bureau_code }}</span></div>
         <div class="kttl">{% if r.restricted %}Restricted &middot; held by {{ r.bureau_code }}{% else %}{{ r.title }}{% endif %}</div>
         <div class="ksub">{{ r.institution_label }}</div>
-        <div class="ktags"><span class="chip plain">{{ r.category }}</span>{% if r.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if r.channel == 'citizen' and not r.restricted %}<span class="chip plain">Citizen</span>{% endif %}</div>
+        <div class="ktags">{{ ui.tier(r.tier) }}<span class="chip plain">{{ r.category }}</span>{% if r.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if r.channel == 'citizen' and not r.restricted %}<span class="chip plain">Citizen</span>{% endif %}</div>
         <div class="kfoot">
           <span class="kown">{% if r.officer_name %}<i class="av">{{ r.officer_name[:1] }}</i>{{ r.officer_name.split(' ')[0] }}{% elif r.restricted %}&nbsp;{% else %}<span class="faint">Unassigned</span>{% endif %}</span>
           {% if r.status == 'Disposed' %}<span class="small" style="color:var(--ok);font-weight:700">Closed</span>{% else %}<span class="small {{ 'k-over' if r.sla == 'overdue' }}">{% if r.sla == 'overdue' %}Overdue &middot; {% else %}Due {% endif %}{{ r.expected_disposal_at | dm }}</span>{% endif %}
         </div>
       </a>
       {% else %}<div class="kempty">No cases</div>{% endfor %}
-      {% if col.more %}<a class="kmore" href="/cases?{{ qs ~ '&' if qs }}status={{ col.status }}">+ {{ col.more }} more in list</a>{% endif %}
+      {% if col.more %}<a class="kmore" href="/cases?{{ qs ~ '&' if qs }}status={{ col.status }}{{ '&tier=' ~ lane.key if lane.key }}">+ {{ col.more }} more in list</a>{% endif %}
     </div>
   </section>
   {% endfor %}
+  </div>
+{% endfor %}
 </div>
 
 <dialog id="dlg-move"><form method="post" id="move-form"><h3 id="move-title">Move case</h3>
