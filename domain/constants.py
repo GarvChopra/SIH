@@ -92,10 +92,13 @@ REVIEW_STATUSES = [PENDING_REVIEW, CONFIRMED, DISMISSED, RELATED_DISTINCT]
 REVIEW_DECISIONS = [CONFIRMED, DISMISSED, RELATED_DISTINCT]
 
 # Similarity thresholds. Embeddings (Cohere embed-v4.0) and the offline lexical
-# fallback score on different scales, so each mode has its own pair. The lexical
-# pair is calibrated by scripts/eval_overlap.py against tests/data/overlap_pairs.json.
+# fallback score on different scales, so each mode has its own pair.
+# LEXICAL pair: chosen with `python -m scripts.eval_overlap` on the 52 labelled
+# synthetic pairs in tests/data/overlap_pairs.json (0.30 -> precision 0.88 / recall
+# 0.81; 0.20 -> best F1 0.89). Tuned in-sample, so optimistic.
+# EMBED pair: starting values only, NOT yet measured (no API key was available).
 EMBED_HIGH, EMBED_MEDIUM = 0.80, 0.65
-LEXICAL_HIGH, LEXICAL_MEDIUM = 0.45, 0.25
+LEXICAL_HIGH, LEXICAL_MEDIUM = 0.30, 0.20
 EMBED_MODEL = "embed-v4.0"
 EMBED_DIMENSION = 1536
 
