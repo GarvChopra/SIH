@@ -27,7 +27,7 @@ def add(actor, action, *, target_type=None, target_id=None, detail=None):
             (actor, action, target_type, tid, json.dumps(detail or {}), now),
         )
         rid = cur.fetchone()[0]
-        conn.commit()
+        pool.commit(conn)
     return {"id": rid, "actor": actor, "action": action, "target_type": target_type,
             "target_id": tid, "detail": detail or {}, "created_at": now}
 

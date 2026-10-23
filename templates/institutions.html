@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Institutions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Institution registry</h1><p>One profile per AICTE permanent ID, with every case against it across all bureaus.</p></div>
+  <div class="actions">{% if can("institution.manage") %}<button class="btn saffron" data-open="dlg-inst">{{ ui.icon('plus') }}Add institution</button>{% endif %}</div>
+</div>
+<form class="card" method="get" style="margin-bottom:18px"><div class="body">
+  <div class="filters">
+    <label class="f f-wide">Search<input type="search" name="q" value="{{ q }}" placeholder="Institution name or AICTE ID"></label>
+    <label class="f">Region<select name="region"><option value="">All regions</option>{% for r in regions %}<option {{ 'selected' if region == r }}>{{ r }}</option>{% endfor %}</select></label>
+    <div class="actions"><button class="btn" type="submit">Search</button><a class="btn ghost" href="/institutions">Clear</a></div>
+  </div></div></form>
+<div class="card"><div class="body flush">
+{% if rows %}
+<div class="table-wrap"><table class="t"><thead><tr><th>Institution</th><th>AICTE ID</th><th>Region</th><th class="num">Active cases</th><th class="num">Total cases</th><th class="num">Bureaus involved</th></tr></thead><tbody>
+{% for i in rows %}{% set s = stats[i.id] %}
+<tr><td><a class="rowlink" href="/institutions/{{ i.aicte_permanent_id }}">{{ i.name }}</a>{% if i.address %}<span class="sub">{{ i.address }}</span>{% endif %}</td>
+<td class="mono">{{ i.aicte_permanent_id }}</td><td>{{ i.region or '—' }}</td>
+<td class="num">{{ s.active }}</td><td class="num">{{ s.total }}</td>
+<td class="num">{% if s.bureaus | length > 1 %}<span class="chip overlap plain">{{ s.bureaus | length }}</span>{% else %}{{ s.bureaus | length }}{% endif %}</td></tr>
+{% endfor %}</tbody></table></div>
+{% else %}{{ ui.empty("No institutions found") }}{% endif %}
+</div></div>
+{% if can("institution.manage") %}
+<dialog id="dlg-inst"><form method="post" action="/institutions"><h3>Add institution</h3>
+  <label class="f">AICTE permanent ID<input type="text" name="aicte_id" required></label>
+  <label class="f">Name<input type="text" name="name" required></label>
+  <label class="f">Address<input type="text" name="address"></label>
+  <label class="f">Region<select name="region"><option value="">Not set</option>{% for r in regions %}<option>{{ r }}</option>{% endfor %}</select></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Add</button></div></form></dialog>
+{% endif %}
+{% endblock %}

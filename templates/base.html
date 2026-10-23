@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1f4a">
+  <title>{% block title %}Dashboard{% endblock %} &middot; SAMANVAY</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8791d'/%3E%3Ctext x='16' y='23' font-size='20' font-weight='800' text-anchor='middle' fill='white' font-family='Arial'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/samanvay.css') }}">
+</head>
+<body>
+{% import "_ui.html" as ui %}
+{% set p = request.path %}
+{% set role = current_user.role %}
+{% set nav = [
+  ("Overview", [
+    ("Dashboard", "/", "dashboard", p == "/", None),
+    ("Cases", "/cases", "cases", p.startswith("/cases"), None),
+    ("Institutions", "/institutions", "building", p.startswith("/institutions") and not p.startswith("/institutions/aliases"), None),
+  ]),
+  ("Coordination", [
+    ("Overlap review", "/overlaps", "link", p.startswith("/overlaps"), nav_counts.overlaps),
+    ("Name matches", "/institutions/aliases", "tag", p.startswith("/institutions/aliases"), nav_counts.aliases),
+    ("Notifications", "/notifications", "bell", p.startswith("/notifications"), unread_notifications),
+  ]),
+  ("Insight", [
+    ("Reports", "/reports", "reports", p.startswith("/reports"), None),
+  ]),
+] %}
+<div class="tri"></div>
+<div class="shell">
+  <div class="scrim" data-close-drawer></div>
+  <aside class="side" aria-label="Main navigation">
+    <div class="brand"><div class="emblem">S</div><div><b>SAMANVAY</b><span>AICTE Complaint Monitoring</span></div></div>
+    <nav class="nav">
+      {% for group, items in nav %}
+      <h6>{{ group }}</h6>
+      {% for label, href, ic, on, n in items %}
+        {% if not (label == "Name matches" and not can("alias.review")) %}
+        <a href="{{ href }}" class="{{ 'on' if on }}"{{ ' aria-current=page' if on }}>{{ ui.icon(ic) }}<span>{{ label }}</span>{% if n %}<span class="count{{ ' quiet' if label == 'Notifications' and not n }}">{{ n }}</span>{% endif %}</a>
+        {% endif %}
+      {% endfor %}
+      {% endfor %}
+      {% if can("user.manage") %}
+      <h6>Administration</h6>
+      <a href="/admin/users" class="{{ 'on' if p.startswith('/admin/users') }}">{{ ui.icon('users') }}<span>Users</span></a>
+      <a href="/admin/bureaus" class="{{ 'on' if p.startswith('/admin/bureaus') }}">{{ ui.icon('bureau') }}<span>Bureaus</span></a>
+      <a href="/admin/audit" class="{{ 'on' if p.startswith('/admin/audit') }}">{{ ui.icon('audit') }}<span>Audit log</span></a>
+      {% endif %}
+    </nav>
+    <div class="side-foot">
+      <span class="avatar">{{ current_user.display_name[:1] | upper }}</span>
+      <div class="who"><b>{{ current_user.display_name }}</b><span>{{ ROLE_LABELS[role] }}{% if my_bureau %} &middot; {{ my_bureau.code }}{% endif %}</span></div>
+      <a class="logout" href="/logout" title="Sign out" aria-label="Sign out">{{ ui.icon('logout') }}</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="burger" id="burger" aria-label="Open menu">{{ ui.icon('menu') }}</button>
+      <h1>{{ self.title() }}</h1>
+      <div class="spacer"></div>
+      <form class="search" action="/cases" method="get" role="search">{{ ui.icon('search') }}
+        <input type="search" name="q" placeholder="Search case no., institution, text" aria-label="Search cases" value="{{ request.args.get('q', '') if p == '/cases' }}"></form>
+      {% if can("complaint.create") %}<a class="btn saffron sm" href="/cases/new">{{ ui.icon('plus') }}<span>New case</span></a>{% endif %}
+      <a class="bell" href="/notifications" aria-label="Notifications">{{ ui.icon('bell') }}{% if unread_notifications %}<i>{{ unread_notifications }}</i>{% endif %}</a>
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="foot">SAMANVAY prototype &middot; synthetic demonstration data &middot; AI only suggests overlaps, officials decide.</footer>
+  </div>
+</div>
+{% with msgs = get_flashed_messages(with_categories=true) %}{% if msgs %}
+<div class="toasts" role="status" aria-live="polite">{% for cat, m in msgs %}<div class="toast {{ cat }}">{{ m }}</div>{% endfor %}</div>
+{% endif %}{% endwith %}
+<script src="{{ url_for('static', filename='js/shell.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

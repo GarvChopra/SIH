@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Name matches{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Institution name matches</h1><p>Cases filed with a name but no AICTE ID are never linked automatically. Review each suggested match.</p></div></div>
+<div class="card"><div class="body flush">
+{% if rows %}
+<div class="table-wrap"><table class="t"><thead><tr><th>Case</th><th>Name as stated</th><th>Suggested institution</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr>
+ <td><a class="rowlink mono" href="/cases/{{ r.complaint.case_number }}">{{ r.complaint.case_number }}</a><span class="sub">{{ r.complaint.title }}</span></td>
+ <td>{{ r.alias.alias }}</td>
+ <td>{{ r.institution.name }}<span class="sub">AICTE ID {{ r.institution.aicte_permanent_id }}{% if r.institution.region %} &middot; {{ r.institution.region }}{% endif %}</span></td>
+ <td class="right nowrap">
+  <form method="post" action="/institutions/aliases/{{ r.alias.id }}/approve" style="display:inline"><button class="btn green sm" type="submit">Approve &amp; link</button></form>
+  <form method="post" action="/institutions/aliases/{{ r.alias.id }}/reject" style="display:inline"><button class="btn ghost sm" type="submit">Reject</button></form></td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}{{ ui.empty("Nothing to review", "No unlinked case has a suggested match waiting.") }}{% endif %}
+</div></div>
+{% endblock %}

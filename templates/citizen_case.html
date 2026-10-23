@@ -1,0 +1,52 @@
+{% extends "citizen_base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}{{ d.case.case_number }}{% endblock %}
+{% block content %}
+{% set c = d.case %}{% set st = d.status %}
+<div class="crumbs"><a href="/my">My complaints</a> / <span class="mono">{{ c.case_number }}</span></div>
+
+{% if is_new %}
+<div class="banner ok">{{ ui.icon('check') }}<div><b>Your complaint has been received</b>Keep this tracking ID. You can follow progress here at any time.</div></div>
+<div style="margin-bottom:18px"><span class="track-id">{{ c.case_number }}</span> <button class="btn ghost sm" type="button" data-copy="{{ c.case_number }}">Copy</button></div>
+{% endif %}
+
+<div class="page-head"><div style="min-width:0"><div class="actions" style="margin-bottom:8px">{{ ui.status(c.status) }}{% if c.overdue %}<span class="chip sla-overdue">Taking longer than expected</span>{% endif %}</div>
+  <h1 style="overflow-wrap:anywhere">{{ c.title }}</h1><p class="mono">{{ c.case_number }}</p></div></div>
+
+<section class="card" style="margin-bottom:18px"><div class="body">
+  <div class="tracker" role="list" aria-label="Complaint progress">
+    {% for s in st.steps %}<div class="st {{ 'done' if loop.index0 < st.step else 'now' if loop.index0 == st.step and st.label != 'Closed' else 'closed done' if loop.index0 == st.step else '' }}" role="listitem">{{ s }}</div>{% endfor %}
+  </div>
+  <p style="margin-top:14px"><b>{{ st.label }}.</b> <span class="muted">{{ st.text }}</span></p>
+  {% if c.status != 'Disposed' and c.expected_by %}<p class="small faint" style="margin-top:4px">AICTE aims to dispose of this complaint by {{ c.expected_by | day }}.</p>{% endif %}
+</div></section>
+
+{% if d.resolution %}
+<div class="banner ok">{{ ui.icon('check') }}<div><b>Outcome</b><span style="white-space:pre-wrap">{{ d.resolution.note }}</span><div class="small" style="margin-top:4px;opacity:.8">{{ d.resolution.at | when }}</div></div></div>
+{% elif c.status == 'Disposed' %}
+<div class="banner info">{{ ui.icon('info') }}<div><b>Case closed</b>No outcome message has been recorded yet.</div></div>
+{% endif %}
+
+<div class="grid g-main">
+  <div class="stack">
+    <section class="card"><header><h3>Updates</h3></header><div class="body">
+      <ol class="timeline">
+        {% for u in d.updates | reverse %}
+        <li class="{{ 'ok' if 'disposed' in u.label.lower() else '' }}"><div class="what">{{ u.label }}</div><div class="when">{{ u.at | when }}</div>{% if u.note %}<div class="note">{{ u.note }}</div>{% endif %}</li>
+        {% endfor %}
+      </ol></div></section>
+    <section class="card"><header><h3>Your complaint</h3></header><div class="body"><p style="white-space:pre-wrap;overflow-wrap:anywhere">{{ c.description }}</p></div></section>
+  </div>
+  <div class="stack">
+    <section class="card"><header><h3>Details</h3></header><div class="body"><dl class="kv">
+      <dt>Institution</dt><dd>{{ c.institution_name }}{% if c.aicte_id %}<br><span class="faint small">AICTE ID {{ c.aicte_id }}</span>{% endif %}</dd>
+      <dt>Category</dt><dd>{{ c.category }}</dd>
+      <dt>Filed on</dt><dd>{{ c.received_at | day }}</dd>
+      <dt>Last update</dt><dd>{{ c.last_update | when if c.last_update else '—' }}</dd></dl></div></section>
+    <section class="card"><header><h3>Your evidence</h3></header><div class="body">
+      {% if d.documents %}<ul class="list-links">{% for doc in d.documents %}<li><span style="min-width:0;overflow-wrap:anywhere">{{ doc.filename }}<br><span class="faint small">{{ doc.at | when }}</span></span><a class="btn ghost sm" href="/files/{{ doc.id }}">Get</a></li>{% endfor %}</ul>{% else %}<p class="muted small">No files attached.</p>{% endif %}
+      {% if d.can_add_evidence %}<form method="post" action="/my/c/{{ c.case_number }}/evidence" enctype="multipart/form-data" class="form" style="margin-top:14px"><label class="f">Add more evidence<input type="file" name="files" multiple required></label><button class="btn ghost" type="submit">{{ ui.icon('upload') }}Upload</button></form>{% endif %}
+    </div></section>
+  </div>
+</div>
+{% endblock %}

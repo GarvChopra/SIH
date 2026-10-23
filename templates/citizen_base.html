@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1f4a">
+  <title>{% block title %}My complaints{% endblock %} &middot; SAMANVAY</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8791d'/%3E%3Ctext x='16' y='23' font-size='20' font-weight='800' text-anchor='middle' fill='white' font-family='Arial'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/samanvay.css') }}">
+</head>
+<body>
+{% import "_ui.html" as ui %}
+{% set p = request.path %}
+<div class="tri"></div>
+<header class="c-top"><div class="in">
+  <a class="brand-l" href="/my"><span class="emblem">S</span><span>SAMANVAY</span></a>
+  <nav aria-label="Citizen navigation">
+    <a href="/my" class="{{ 'on' if p == '/my' or p.startswith('/my/c/') }}">My complaints</a>
+    <a href="/my/new" class="{{ 'on' if p == '/my/new' }}">File a complaint</a>
+  </nav>
+  <div class="spacer"></div>
+  <a class="bell" href="/my/notifications" aria-label="Notifications">{{ ui.icon('bell') }}{% if c_unread %}<i>{{ c_unread }}</i>{% endif %}</a>
+  <a class="out" href="/logout" title="Sign out"><span>{{ current_user.display_name }} &middot; </span>Sign out</a>
+</div></header>
+<main class="c-wrap">{% block content %}{% endblock %}</main>
+<footer class="foot">SAMANVAY complaint portal &middot; prototype with synthetic data. You will only ever see your own complaints.</footer>
+{% with msgs = get_flashed_messages(with_categories=true) %}{% if msgs %}
+<div class="toasts" role="status" aria-live="polite">{% for cat, m in msgs %}<div class="toast {{ cat }}">{{ m }}</div>{% endfor %}</div>
+{% endif %}{% endwith %}
+<script src="{{ url_for('static', filename='js/shell.js') }}" defer></script>
+</body>
+</html>

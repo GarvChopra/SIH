@@ -23,3 +23,7 @@ ROADMAP.md
 *.pptx
 static/uploads/*
 !static/uploads/.gitkeep
+
+# SAMANVAY: uploaded complaint evidence and local scratch
+uploads/
+.venv/

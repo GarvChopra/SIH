@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Bureaus{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Bureaus and cells</h1><p>Headquarters cells and regional offices that own cases.</p></div>
+ <div class="actions"><button class="btn saffron" data-open="dlg-b">{{ ui.icon('plus') }}New bureau</button></div></div>
+<div class="card"><div class="body flush"><div class="table-wrap"><table class="t"><thead><tr><th>Code</th><th>Name</th><th>Region</th><th class="num">Staff</th><th class="num">Active cases</th></tr></thead><tbody>
+{% for b in rows %}<tr><td><span class="tag">{{ b.code }}</span></td><td>{{ b.name }}</td><td>{{ b.region or 'Headquarters' }}</td><td class="num">{{ staff.get(b.id, 0) }}</td><td class="num"><a href="/cases?bureau={{ b.id }}">{{ load.get(b.id, 0) }}</a></td></tr>{% endfor %}
+</tbody></table></div></div></div>
+<dialog id="dlg-b"><form method="post" action="/admin/bureaus"><h3>New bureau</h3>
+ <label class="f">Code<input type="text" name="code" required maxlength="10"></label>
+ <label class="f">Name<input type="text" name="name" required></label>
+ <label class="f">Region <span class="hint">For regional offices</span><select name="region"><option value="">Headquarters</option>{% for r in regions %}<option>{{ r }}</option>{% endfor %}</select></label>
+ <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Create</button></div></form></dialog>
+{% endblock %}

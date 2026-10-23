@@ -1,88 +1,108 @@
-"""Domain constants for UNIFIX (GL Bajaj campus). Stdlib-only."""
+"""Domain constants for SAMANVAY (AICTE complaint monitoring). Stdlib-only."""
 
-CATEGORIES = ["Electric", "Plumbing", "Civil", "Mechanical", "Power", "IT / Network"]
-SEVERITIES = ["low", "medium", "high"]
+BRAND = {
+    "product": "SAMANVAY",
+    "name": "AICTE – Integrated Complaint Monitoring",
+    "tagline": "Cross-Bureau Coordination System",
+    "org": "All India Council for Technical Education",
+    "short": "AICTE",
+}
 
-STATUSES = ["reported", "verified", "assigned", "in_progress",
-            "resolved", "admin_verified", "closed"]
+# ── complaint classification ───────────────────────────────────────────────
+# category -> days allowed for disposal (SLA window)
+SLA_DAYS = {
+    "Unauthorized fees": 30,
+    "Faculty qualifications": 45,
+    "Infrastructure deficiency": 60,
+    "Admission irregularities": 30,
+    "Approval violations": 45,
+    "Harassment": 15,
+    "Certificates withheld": 20,
+    "Examination irregularities": 30,
+}
+CATEGORIES = list(SLA_DAYS)
+DEFAULT_SLA_DAYS = 30
+
+PRIORITIES = ["low", "medium", "high", "critical"]
+
+# ── status machine ─────────────────────────────────────────────────────────
+PENDING, UNDER_PROCESS, TRANSFERRED, ESCALATED, DISPOSED = (
+    "Pending", "Under Process", "Transferred", "Escalated", "Disposed")
+STATUSES = [PENDING, UNDER_PROCESS, TRANSFERRED, ESCALATED, DISPOSED]
 
 STATUS_TRANSITIONS = {
-    "reported":       ["verified"],
-    "verified":       ["assigned"],
-    "assigned":       ["in_progress"],
-    "in_progress":    ["resolved"],
-    "resolved":       ["admin_verified", "in_progress"],   # in_progress = reopen
-    "admin_verified": ["closed", "in_progress"],           # in_progress = reopen
-    "closed":         [],
+    PENDING:       [UNDER_PROCESS, TRANSFERRED, ESCALATED],
+    UNDER_PROCESS: [TRANSFERRED, ESCALATED, DISPOSED],
+    TRANSFERRED:   [PENDING],            # accepted by the receiving bureau
+    ESCALATED:     [UNDER_PROCESS, DISPOSED],
+    DISPOSED:      [UNDER_PROCESS],      # reopen, reason required
+}
+ACTIVE_STATUSES = [s for s in STATUSES if s != DISPOSED]
+
+# ── roles ──────────────────────────────────────────────────────────────────
+SUPER_ADMIN, BUREAU_ADMIN, OFFICER, REGIONAL_USER, CITIZEN = (
+    "super_admin", "bureau_admin", "officer", "regional_user", "citizen")
+STAFF_ROLES = [SUPER_ADMIN, BUREAU_ADMIN, OFFICER, REGIONAL_USER]
+ROLES = STAFF_ROLES + [CITIZEN]
+ROLE_LABELS = {
+    SUPER_ADMIN: "Super Admin", BUREAU_ADMIN: "Bureau Admin",
+    OFFICER: "Officer", REGIONAL_USER: "Regional User", CITIZEN: "Citizen",
 }
 
-RESPONSIBLE_UNITS = {
-    "College":   ["Infrastructure", "Sanitation", "Housekeeping", "Landscaping", "Mess", "Parking"],
-    "Academics": ["Class", "Lab"],
-}
-RESPONSIBLE_UNITS_FLAT = RESPONSIBLE_UNITS["College"] + RESPONSIBLE_UNITS["Academics"]
+# Citizen complaints are received by this cell; it can transfer them onward.
+INTAKE_BUREAU_CODE = "PGRC"
 
-# Coarse location "buckets" — copied onto grievance.location_type so the
-# intelligence layer, validation and duplicate detection keep working while the
-# reporter picks a precise node from the location tree.
-LOCATION_TYPES = [
-    {"key": "academics_block", "name": "Academics Block", "drilldown": True},
-    {"key": "hostels",         "name": "Hostels",         "drilldown": False},
-    {"key": "mess_canteen",    "name": "Mess / Canteen",  "drilldown": True},
-    {"key": "playground",      "name": "Playground",       "drilldown": False},
-    {"key": "outer_area",      "name": "Outer Area",       "drilldown": True},
-    {"key": "facility",        "name": "Campus Facility",  "drilldown": True},
-]
-LOCATION_BUCKETS = [t["key"] for t in LOCATION_TYPES]
-
-OUTER_AREA_SUBZONES = ["Common/Electrical", "Security", "Lawn Area", "Sewage", "Drainage"]
-
-# ── Verified GL Bajaj campus structure ────────────────────────────────────
-# Only what public sources / the GL Bajaj website confirm. NO invented room or
-# floor numbers — the admin adds the real room list at /admin/locations later
-# without any code change.
-CAMPUS_NAME = "GL Bajaj Institute of Technology & Management"
-# Public sources identify the two academic blocks as AB1 and AB2.
-CAMPUS_BUILDINGS = ["AB1", "AB2"]
-# Generic structural floor levels — scaffolding only; the admin enables/renames
-# per building and adds rooms beneath them.
-BUILDING_FLOORS = ["Ground Floor", "1st Floor", "2nd Floor", "3rd Floor", "4th Floor"]
-# Standalone facilities. Canteens route to the Mess unit; the rest are generic.
-CAMPUS_CANTEENS = ["B.Tech Canteen", "MBA Canteen", "BCA Canteen"]
-CAMPUS_FACILITIES = ["Library", "SHD Hall", "Medical Facility"]
-# Room types the admin can tag a room with.
-ROOM_TYPES = ["Classroom", "Lab", "Faculty Room", "Office",
-              "Washroom", "Store", "Other Facility"]
-
-# Back-compat aliases (older modules/tests import these names).
-ACADEMICS_BLOCKS = CAMPUS_BUILDINGS
-ACADEMICS_FLOORS = BUILDING_FLOORS
-
-SLA_HOURS = {
-    "Electric": 24, "Power": 24, "Plumbing": 48,
-    "Mechanical": 72, "Civil": 120, "IT / Network": 48,
+# Case-history entries a complainant may see, with the wording shown to them.
+# Internal remarks, officer names and bureau-to-bureau detail are never exposed.
+CITIZEN_VISIBLE_ACTIONS = {
+    "registered": "Complaint received",
+    "assigned": "Assigned to an officer",
+    "status_changed": "Examination started",
+    "transferred": "Forwarded to the concerned AICTE bureau",
+    "transfer_accepted": "Accepted by the concerned AICTE bureau",
+    "escalated": "Escalated for senior review",
+    "disposed": "Case disposed",
+    "reopened": "Case reopened",
+    "citizen_update": "Update from AICTE",
 }
 
-PULSE_DOMAINS = [
-    {"key": "electrical",  "name": "Electrical",       "categories": ["Electric", "Power"], "location_type": None,              "sub_zone": None},
-    {"key": "water",       "name": "Water / Plumbing", "categories": ["Plumbing"],          "location_type": None,              "sub_zone": None},
-    {"key": "classrooms",  "name": "Classrooms",       "categories": [],                    "location_type": "academics_block", "sub_zone": None},
-    {"key": "it",          "name": "IT",               "categories": ["IT / Network"],      "location_type": None,              "sub_zone": None},
-    {"key": "cleanliness", "name": "Cleanliness",      "categories": ["Civil"],             "location_type": None,              "sub_zone": None},
-    {"key": "security",    "name": "Security",         "categories": [],                    "location_type": None,              "sub_zone": "Security"},
+REGIONS = ["North", "South", "East", "West", "Central"]
+
+# code, name, region (None = headquarters cell)
+BUREAUS = [
+    ("RB",    "Regulation Bureau",                  None),
+    ("PGRC",  "Public Grievance Redressal Cell",    None),
+    ("AB",    "Approval Bureau",                    None),
+    ("AC",    "Academic Cell",                      None),
+    ("VC",    "Vigilance Cell",                     None),
+    ("RO-N",  "Northern Regional Office",           "North"),
+    ("RO-S",  "Southern Regional Office",           "South"),
 ]
 
-RECURRING_WINDOW_DAYS = 14
-GAP_THRESHOLD = 4
-HIGH_PRIORITY_ALERT = 60   # new grievance at/above this priority (or severity high) alerts the admin
-CODE_PREFIX = "GLB-CAMP-"
+# ── case actions / overlap model ───────────────────────────────────────────
+SAME_INSTITUTION = "same_institution"
+RELATED = "related"
+POSSIBLE_DUPLICATE = "possible_duplicate"
+OVERLAPPING_PROCEEDING = "overlapping_proceeding"
+RELATIONSHIP_TYPES = [SAME_INSTITUTION, RELATED, POSSIBLE_DUPLICATE, OVERLAPPING_PROCEEDING]
+
+PENDING_REVIEW, CONFIRMED, DISMISSED, RELATED_DISTINCT = (
+    "pending", "confirmed", "dismissed", "related_distinct")
+REVIEW_STATUSES = [PENDING_REVIEW, CONFIRMED, DISMISSED, RELATED_DISTINCT]
+REVIEW_DECISIONS = [CONFIRMED, DISMISSED, RELATED_DISTINCT]
+
+# Similarity thresholds. Embeddings (Cohere embed-v4.0) and the offline lexical
+# fallback score on different scales, so each mode has its own pair. The lexical
+# pair is calibrated by scripts/eval_overlap.py against tests/data/overlap_pairs.json.
+EMBED_HIGH, EMBED_MEDIUM = 0.80, 0.65
+LEXICAL_HIGH, LEXICAL_MEDIUM = 0.45, 0.25
+EMBED_MODEL = "embed-v4.0"
+EMBED_DIMENSION = 1536
+
+# ── SLA ────────────────────────────────────────────────────────────────────
+DUE_SOON_FRACTION = 0.20          # last 20% of the disposal window
+ON_TRACK, DUE_SOON, OVERDUE = "on_track", "due_soon", "overdue"
+
+# ── numbering ──────────────────────────────────────────────────────────────
+CODE_PREFIX = "AICTE-CMP-"
 CODE_PAD = 5
-
-GLB = {
-    "name": "GL Bajaj Institute of Technology and Management",
-    "short": "GL Bajaj",
-    "product": "UNIFIX",
-    "email_domain": "glbitm.ac.in",
-    "theme_navy": "#0b2a5b",
-    "theme_blue": "#1e5fbf",
-}

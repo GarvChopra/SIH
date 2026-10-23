@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Staff accounts</h1><p>Citizens register themselves and are not listed here.</p></div>
+ <div class="actions"><button class="btn saffron" data-open="dlg-user">{{ ui.icon('plus') }}New account</button></div></div>
+<div class="card"><div class="body flush"><div class="table-wrap"><table class="t"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Bureau</th><th>Region</th><th>Status</th><th></th></tr></thead><tbody>
+{% for u in rows %}<tr><td><span class="title">{{ u.display_name }}</span></td><td class="mono">{{ u.username }}</td><td>{{ role_labels[u.role] }}</td>
+ <td>{% if u.bureau_id %}<span class="tag">{{ bmap[u.bureau_id].code }}</span>{% else %}—{% endif %}</td><td>{{ u.region or '—' }}</td>
+ <td>{% if u.is_active %}<span class="chip confirmed">Active</span>{% else %}<span class="chip dismissed">Inactive</span>{% endif %}</td>
+ <td class="right">{% if u.id != current_user.id %}<form method="post" action="/admin/users/{{ u.id }}/toggle"><button class="btn ghost sm" type="submit">{{ 'Deactivate' if u.is_active else 'Activate' }}</button></form>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+<dialog id="dlg-user"><form method="post" action="/admin/users"><h3>New staff account</h3>
+ <label class="f">Full name<input type="text" name="display_name" required></label>
+ <label class="f">Username<input type="text" name="username" required minlength="3"></label>
+ <label class="f">Role<select name="role" required>{% for r in roles %}<option value="{{ r }}">{{ role_labels[r] }}</option>{% endfor %}</select></label>
+ <label class="f">Bureau<select name="bureau_id"><option value="">None (super admin only)</option>{% for b in bureaus %}<option value="{{ b.id }}">{{ b.code }} &middot; {{ b.name }}</option>{% endfor %}</select></label>
+ <label class="f">Region <span class="hint">Needed for regional users</span><select name="region"><option value="">Not set</option>{% for r in regions %}<option>{{ r }}</option>{% endfor %}</select></label>
+ <label class="f">Temporary PIN <span class="hint">4 to 8 digits. They must change it at first sign-in.</span><input type="password" name="pin" inputmode="numeric" required></label>
+ <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Create</button></div></form></dialog>
+{% endblock %}

@@ -1,44 +1,39 @@
 """Role-based access control. Stdlib + flask only (decorator).
 
-Admin tiers
------------
-The MVP intentionally has a SINGLE admin tier: every `admin` account holds the
-full `_ADMIN` permission set, including creating other admins. This is a
-deliberate product decision (one campus coordinator, "Sir"), not an oversight.
-`User.role` stays generic (`reporter` / `admin`) so a second coordinator can be
-added with no schema change; if a lower-privilege admin tier is ever needed,
-add a new role here and split `_ADMIN`. Admin creation is still whitelisted
-(`users.VALID_ROLES`) and written to the global audit trail as `admin.create`.
+Permissions say what a role may *do*. Which individual case a user may *see* or
+*edit* is decided per-case in `services/access_service.py`, because that depends
+on bureau, region and confirmed overlaps, not on role alone.
 """
 from __future__ import annotations
 
 import functools
 
-GRIEVANCE_CREATE            = "grievance.create"
-GRIEVANCE_VIEW_OWN          = "grievance.view_own"
-GRIEVANCE_VIEW_ALL          = "grievance.view_all"
-GRIEVANCE_VERIFY            = "grievance.verify"
-GRIEVANCE_CORRECT_CATEGORY  = "grievance.correct_category"
-GRIEVANCE_ASSIGN            = "grievance.assign"
-GRIEVANCE_CHANGE_STATUS     = "grievance.change_status"
-GRIEVANCE_VERIFY_RESOLUTION = "grievance.verify_resolution"
-GRIEVANCE_CLOSE             = "grievance.close"
-ANALYTICS_VIEW             = "analytics.view"
-NOTICE_MANAGE             = "notice.manage"
-USER_MANAGE               = "user.manage"
-LOCATION_MANAGE           = "location.manage"
-AUDIT_VIEW                = "audit.view"
+from domain.constants import BUREAU_ADMIN, CITIZEN, OFFICER, REGIONAL_USER, SUPER_ADMIN
 
-_REPORTER = {GRIEVANCE_CREATE, GRIEVANCE_VIEW_OWN}
-_ADMIN = {
-    GRIEVANCE_VIEW_ALL, GRIEVANCE_VERIFY, GRIEVANCE_CORRECT_CATEGORY, GRIEVANCE_ASSIGN,
-    GRIEVANCE_CHANGE_STATUS, GRIEVANCE_VERIFY_RESOLUTION, GRIEVANCE_CLOSE,
-    ANALYTICS_VIEW, NOTICE_MANAGE, USER_MANAGE, LOCATION_MANAGE, AUDIT_VIEW,
-}
+COMPLAINT_CREATE   = "complaint.create"
+COMPLAINT_ASSIGN   = "complaint.assign"
+COMPLAINT_UPDATE   = "complaint.update"       # remark / document / status on a case you own
+COMPLAINT_ESCALATE = "complaint.escalate"     # execute transfer / escalate (officers only *request*)
+COMPLAINT_REQUEST  = "complaint.request"      # ask a bureau admin to transfer / escalate
+OVERLAP_REVIEW     = "overlap.review"
+INSTITUTION_MANAGE = "institution.manage"
+ALIAS_REVIEW       = "alias.review"
+USER_MANAGE        = "user.manage"
+BUREAU_MANAGE      = "bureau.manage"
+AUDIT_VIEW         = "audit.view"
+REPORT_VIEW        = "report.view"
+CITIZEN_COMPLAIN   = "citizen.complain"
+
+_FIELD = {COMPLAINT_CREATE, COMPLAINT_UPDATE, COMPLAINT_REQUEST, REPORT_VIEW}
+_BUREAU_ADMIN = _FIELD | {COMPLAINT_ASSIGN, COMPLAINT_ESCALATE, OVERLAP_REVIEW, ALIAS_REVIEW}
+_SUPER = _BUREAU_ADMIN | {INSTITUTION_MANAGE, USER_MANAGE, BUREAU_MANAGE, AUDIT_VIEW}
 
 ROLE_PERMISSIONS: dict[str, set[str]] = {
-    "reporter": set(_REPORTER),
-    "admin": set(_REPORTER) | _ADMIN,
+    SUPER_ADMIN: set(_SUPER),
+    BUREAU_ADMIN: set(_BUREAU_ADMIN),
+    OFFICER: set(_FIELD),
+    REGIONAL_USER: set(_FIELD),
+    CITIZEN: {CITIZEN_COMPLAIN},
 }
 
 
@@ -50,14 +45,14 @@ def require_permission(perm: str):
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
-            from flask import g, redirect, request, jsonify
+            from flask import g, jsonify, redirect, request
             user = g.get("current_user")
             if user and has_permission(user["role"], perm):
                 return fn(*args, **kwargs)
-            wants_json = request.method != "GET" or request.path.endswith("/data") \
-                or request.path.startswith("/api/")
-            if wants_json:
-                return jsonify({"error": "forbidden", "need": perm}), 403
-            return redirect("/login")
+            if not user:
+                if request.method != "GET" or request.path.endswith("/data"):
+                    return jsonify({"error": "unauthenticated"}), 401
+                return redirect("/login")
+            return jsonify({"error": "forbidden", "need": perm}), 403
         return wrapper
     return deco

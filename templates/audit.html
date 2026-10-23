@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>System audit log</h1><p>Security-relevant actions and every AI/embedding call. Case history is on each case.</p></div></div>
+<div class="card"><div class="body flush">
+{% if rows %}<div class="table-wrap"><table class="t"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead><tbody>
+{% for r in rows %}<tr><td class="nowrap">{{ r.created_at | when }}</td><td>{{ r.actor or 'system' }}</td><td><span class="tag">{{ r.action }}</span></td><td class="small">{{ r.target_type or '' }} {{ r.target_id or '' }}</td><td class="small mono" style="overflow-wrap:anywhere">{{ r.detail }}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}{{ ui.empty("No entries yet") }}{% endif %}
+</div></div>
+{% endblock %}

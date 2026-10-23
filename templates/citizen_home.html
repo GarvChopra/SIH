@@ -1,0 +1,34 @@
+{% extends "citizen_base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}My complaints{% endblock %}
+{% block content %}
+<section class="hero-cta">
+  <div><h2>Hello, {{ current_user.display_name.split(' ')[0] }}</h2><p>File a new complaint against an AICTE-approved institution, or follow the ones you have already submitted.</p></div>
+  <a class="btn saffron" href="/my/new">{{ ui.icon('plus') }}File a complaint</a>
+</section>
+<div class="kpis">
+  {{ ui.kpi("Submitted", rows | length) }}
+  {{ ui.kpi("In progress", open_n, tone="alert") }}
+  {{ ui.kpi("Closed", closed_n, tone="ok") }}
+</div>
+<div class="grid g-main">
+  <section class="card"><header><h3>My complaints</h3></header>
+    <div class="body flush">
+    {% for r in rows %}
+      <a class="case-tile" href="/my/c/{{ r.case_number }}">
+        <div class="top-row"><span class="mono" style="font-weight:800;color:var(--navy-800)">{{ r.case_number }}</span>{{ ui.status(r.status) }}</div>
+        <div class="ttl">{{ r.title }}</div>
+        <div class="small muted">{{ r.institution_name }} &middot; {{ r.category }} &middot; filed {{ r.received_at | day }}</div>
+        <div class="mini-track" aria-label="Progress: {{ r.status_label }}">{% for i in range(4) %}<i class="{{ 'on' if i < r.step else 'now' if i == r.step else '' }}"></i>{% endfor %}</div>
+      </a>
+    {% else %}
+      <div class="body">{{ ui.empty("No complaints yet", "When you file one it will appear here with its tracking ID.") }}<div style="text-align:center;margin-top:10px"><a class="btn" href="/my/new">File your first complaint</a></div></div>
+    {% endfor %}
+    </div></section>
+  <section class="card"><header><h3>Latest updates</h3><a href="/my/notifications">All</a></header>
+    <div class="body flush">
+    {% for n in notes %}<div class="notif {{ 'unread' if not n.read_at else 'read' }}"><span class="dot"></span><div><div style="overflow-wrap:anywhere">{{ n.message }}</div><div class="faint small">{{ n.created_at | when }}</div></div></div>
+    {% else %}<div class="body"><p class="muted small">Updates on your complaints will appear here.</p></div>{% endfor %}
+    </div></section>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{# SAMANVAY UI macros: inline SVG icons, chips, KPI cards, bars, donut. No external assets. #}
+{% macro icon(name) -%}
+{%- set p = {
+  "dashboard": '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+  "cases": '<path d="M8 3h8l4 4v14H4V3z"/><path d="M15 3v5h5M8 13h8M8 17h5"/>',
+  "building": '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 8h.01M15 8h.01M9 12h.01M15 12h.01M9 16h6"/>',
+  "link": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  "bell": '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  "reports": '<path d="M4 19V5M4 19h16M8 16v-5M13 16V8M18 16v-8"/>',
+  "users": '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4a3 3 0 0 1 0 6M21 20c0-2.6-1.7-4.8-4-5.6"/>',
+  "bureau": '<path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/>',
+  "audit": '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>',
+  "logout": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  "search": '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  "menu": '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  "alert": '<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "x": '<path d="M18 6 6 18M6 6l12 12"/>',
+  "plus": '<path d="M12 5v14M5 12h14"/>',
+  "download": '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  "info": '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>',
+  "tag": '<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1"/>',
+  "home": '<path d="M3 11l9-8 9 8v10H3z"/><path d="M9 21v-6h6v6"/>',
+  "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  "upload": '<path d="M12 21V9M7 14l5-5 5 5M5 3h14"/>',
+} -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ p.get(name, p["info"]) | safe }}</svg>
+{%- endmacro %}
+
+{% macro status(s) -%}<span class="chip s-{{ s | replace(' ', '-') }}">{{ s }}</span>{%- endmacro %}
+
+{% macro sla(state) -%}
+{%- if state -%}<span class="chip sla-{{ state }}">{{ {'on_track': 'On track', 'due_soon': 'Due soon', 'overdue': 'Overdue'}[state] }}</span>{%- else -%}<span class="faint">&mdash;</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro priority(p) -%}{%- if p -%}<span class="chip {{ p }}">{{ p | capitalize }}</span>{%- else -%}<span class="faint">&mdash;</span>{%- endif -%}{%- endmacro %}
+
+{% macro kpi(label, value, href=None, tone="", sub="") -%}
+<{{ 'a' if href else 'div' }} class="kpi {{ tone }}"{% if href %} href="{{ href }}"{% endif %}>
+  <div class="l">{{ label }}</div><div class="n">{{ value }}</div>{% if sub %}<div class="s">{{ sub }}</div>{% endif %}
+</{{ 'a' if href else 'div' }}>
+{%- endmacro %}
+
+{% macro empty(title, text="") -%}
+<div class="empty"><b>{{ title }}</b>{% if text %}<span>{{ text }}</span>{% endif %}</div>
+{%- endmacro %}
+
+{# bars: rows = [{label, value, href, note}] #}
+{% macro bars(rows, tone="") -%}
+{%- set mx = (rows | map(attribute='value') | max) if rows else 1 -%}
+<div class="bars">
+{% for r in rows %}
+  <div class="bar">
+    <div class="h"><span>{% if r.href %}<a href="{{ r.href }}">{{ r.label }}</a>{% else %}{{ r.label }}{% endif %}{% if r.note %} <span class="faint small">{{ r.note }}</span>{% endif %}</span><b>{{ r.value }}</b></div>
+    <div class="tr"><i class="{{ r.tone or tone }}" style="width:{{ ((r.value / (mx or 1)) * 100) | round(1) }}%"></i></div>
+  </div>
+{% else %}{{ empty("No data yet") }}{% endfor %}
+</div>
+{%- endmacro %}
+
+{# donut: segments = [{label, value, color, href}] #}
+{% macro donut(segments) -%}
+{%- set total = (segments | sum(attribute='value')) or 0 -%}
+{%- set circ = 2 * 3.14159265 * 45 -%}
+<div class="donut">
+  <svg viewBox="0 0 120 120" role="img" aria-label="Distribution">
+    <circle cx="60" cy="60" r="45" fill="none" stroke="#e6ecf8" stroke-width="18"/>
+    {%- set ns = namespace(acc=0) -%}
+    {%- if total -%}{% for s in segments if s.value %}
+    <circle cx="60" cy="60" r="45" fill="none" stroke="{{ s.color }}" stroke-width="18"
+      stroke-dasharray="{{ (circ * s.value / total) | round(2) }} {{ circ | round(2) }}"
+      stroke-dashoffset="{{ (-circ * ns.acc / total) | round(2) }}" transform="rotate(-90 60 60)"/>
+    {%- set ns.acc = ns.acc + s.value -%}{% endfor %}{%- endif -%}
+    <text x="60" y="58" text-anchor="middle" font-size="22" font-weight="800" fill="#0b1f4a">{{ total }}</text>
+    <text x="60" y="74" text-anchor="middle" font-size="9" fill="#7a8798">TOTAL</text>
+  </svg>
+  <div class="legend">
+    {% for s in segments %}<span><i style="background:{{ s.color }}"></i>{% if s.href %}<a href="{{ s.href }}">{{ s.label }}</a>{% else %}{{ s.label }}{% endif %}<b>{{ s.value }}</b></span>{% endfor %}
+  </div>
+</div>
+{%- endmacro %}
+
+{# case table rows. rows from case_view_service.list_cases #}
+{% macro case_table(rows, show_institution=True) -%}
+{% if rows %}
+<div class="table-wrap"><table class="t">
+  <thead><tr><th>Case</th>{% if show_institution %}<th>Institution</th>{% endif %}<th>Bureau</th><th>Category</th><th>Status</th><th>Deadline</th><th>Received</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a class="rowlink mono" href="/cases/{{ r.case_number }}">{{ r.case_number }}</a>
+      <span class="title" style="margin-top:3px">{% if r.restricted %}<span class="chip restricted plain">Restricted</span> <span class="faint small">details held by {{ r.bureau_code }}</span>{% else %}{{ r.title }}{% endif %}</span>
+      {% if r.overlap %}<span class="chip overlap plain" style="margin-top:4px">Overlap flagged</span>{% endif %}</td>
+    {% if show_institution %}<td>{% if r.aicte_id %}<a href="/institutions/{{ r.aicte_id }}">{{ r.institution_label }}</a><span class="sub">ID {{ r.aicte_id }}{% if r.region %} · {{ r.region }}{% endif %}</span>{% else %}<span class="muted">{{ r.institution_label }}</span>{% endif %}</td>{% endif %}
+    <td><span class="tag">{{ r.bureau_code }}</span></td>
+    <td>{{ r.category }}</td>
+    <td>{{ status(r.status) }}</td>
+    <td>{{ sla(r.sla) }}{% if r.expected_disposal_at %}<span class="sub">{{ r.expected_disposal_at | day }}</span>{% endif %}</td>
+    <td class="nowrap">{{ r.received_at | day }}</td>
+  </tr>
+  {% endfor %}
+  </tbody></table></div>
+{% else %}{{ empty("No cases match", "Try clearing a filter.") }}{% endif %}
+{%- endmacro %}

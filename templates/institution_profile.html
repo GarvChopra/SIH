@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}{{ d.institution.name }}{% endblock %}
+{% block content %}
+{% set i = d.institution %}
+<div class="crumbs"><a href="/institutions">Institutions</a> / {{ i.aicte_permanent_id }}</div>
+<div class="page-head">
+  <div><h1>{{ i.name }}</h1><p>AICTE permanent ID <span class="mono">{{ i.aicte_permanent_id }}</span>{% if i.region %} &middot; {{ i.region }} region{% endif %}{% if i.address %} &middot; {{ i.address }}{% endif %}</p></div>
+  <div class="actions"><a class="btn ghost" href="/cases?aicte_id={{ i.aicte_permanent_id }}">Filter in case register</a></div>
+</div>
+<div class="kpis">
+  {{ ui.kpi("Active cases", d.active | length, tone="alert" if d.bureaus | length > 1 else "") }}
+  {{ ui.kpi("Closed cases", d.closed | length, tone="ok") }}
+  {{ ui.kpi("Bureaus involved", d.bureaus | length, sub=(d.bureaus | join(', ')) or 'none', tone="warn" if d.bureaus | length > 1 else "") }}
+  {{ ui.kpi("Overlap links", d.links | length) }}
+</div>
+{% if d.bureaus | length > 1 %}<div class="banner alert">{{ ui.icon('link') }}<div><b>{{ d.bureaus | length }} bureaus have active cases here</b>{{ d.bureaus | join(', ') }}. Check the overlap review before parallel action.</div></div>{% endif %}
+<div class="grid g-main">
+  <div class="stack">
+    <section class="card"><header><h3>Active cases</h3></header><div class="body flush">{{ ui.case_table(d.active, show_institution=False) }}</div></section>
+    <section class="card"><header><h3>Closed cases</h3></header><div class="body flush">{{ ui.case_table(d.closed, show_institution=False) }}</div></section>
+    <section class="card"><header><h3>Activity history</h3><span class="faint small">Cases you may open</span></header><div class="body">
+      {% if d.history %}<ol class="timeline">{% for a in d.history[:30] %}<li><div class="what"><a class="mono" href="/cases/{{ a.case_number }}">{{ a.case_number }}</a> &middot; {{ a.action_type.replace('_',' ') | capitalize }}</div><div class="when">{{ a.at | when }} &middot; {{ a.actor_name }}{% if a.bureau_code %} ({{ a.bureau_code }}){% endif %}</div></li>{% endfor %}</ol>
+      {% else %}{{ ui.empty("No history visible to you") }}{% endif %}</div></section>
+  </div>
+  <div class="stack">
+    <section class="card"><header><h3>Overlap links</h3></header><div class="body">
+      {% if d.links %}<ul class="list-links">{% for x in d.links %}<li><span><a class="mono" href="/cases/{{ x.a.case_number }}">{{ x.a.case_number }}</a> &harr; <a class="mono" href="/cases/{{ x.b.case_number }}">{{ x.b.case_number }}</a><br><span class="faint small">{{ x.a.bureau_code }} &amp; {{ x.b.bureau_code }} &middot; {{ x.link.relationship_type.replace('_',' ') }}</span></span><span class="chip {{ x.link.review_status }} plain">{{ x.link.review_status.replace('_',' ') }}</span></li>{% endfor %}</ul>
+      {% else %}<p class="muted small">No overlaps detected.</p>{% endif %}</div></section>
+    <section class="card"><header><h3>Approved name variants</h3></header><div class="body">
+      {% if d.aliases %}<ul class="list-links">{% for a in d.aliases %}<li>{{ a.alias }}</li>{% endfor %}</ul>{% else %}<p class="muted small">None yet. Variants appear when a bureau admin approves a name match.</p>{% endif %}</div></section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1f4a">
+  <title>Create account &middot; SAMANVAY</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/samanvay.css') }}">
+</head>
+<body>
+<div class="tri"></div>
+<div class="auth-wrap">
+  <section class="auth-hero">
+    <div class="logo"><div class="emblem">S</div><div><b style="font-size:20px;letter-spacing:1px">SAMANVAY</b><div class="small" style="color:#c7d4ef">AICTE Complaint Portal</div></div></div>
+    <div>
+      <h2>Report a problem at a technical institution and follow what happens next.</h2>
+      <p>Students, parents and faculty can file a complaint against an AICTE-approved institution, attach evidence, and track every step.</p>
+      <ul><li>You get a tracking ID the moment you file</li><li>You see status updates and the outcome</li><li>Only you can see your complaints</li></ul>
+    </div>
+    <div class="small" style="color:#9fb2d8">Prototype with synthetic data. Not an official AICTE system.</div>
+  </section>
+  <section class="auth-card-wrap"><div class="auth-card"><div class="card">
+    <h1 style="margin-bottom:4px">Create your account</h1>
+    <p class="muted" style="margin-bottom:16px">For students, parents, faculty and other complainants</p>
+    {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}<div class="banner {{ cat }}" role="alert"><div>{{ m }}</div></div>{% endfor %}{% endwith %}
+    <form method="post" action="/register" class="form">
+      <label class="f">Full name<input type="text" name="display_name" value="{{ f.get('display_name','') }}" required autofocus></label>
+      <label class="f">Email address<input type="email" name="contact" value="{{ f.get('contact','') }}" required></label>
+      <label class="f">Username<input type="text" name="username" value="{{ f.get('username','') }}" required minlength="4" maxlength="32" autocomplete="username"><span class="hint">4 to 32 letters, digits, dot, dash or underscore</span></label>
+      <div class="row">
+        <label class="f">Password<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+        <label class="f">Confirm<input type="password" name="confirm" required minlength="8" autocomplete="new-password"></label>
+      </div>
+      <button class="btn saffron block" type="submit">Create account</button>
+    </form>
+    <p class="small muted" style="margin-top:16px;text-align:center">Already registered? <a href="/login"><b>Sign in</b></a></p>
+  </div></div></section>
+</div>
+<script src="{{ url_for('static', filename='js/shell.js') }}" defer></script>
+</body>
+</html>

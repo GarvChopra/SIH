@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Overlap review{% endblock %}
+{% block content %}
+{% set l = d.link %}{% set ev = d.evidence %}{% set sc = ev.get('scores', {}) %}
+<div class="crumbs"><a href="/overlaps">Overlap review</a> / #{{ l.id }}</div>
+<div class="page-head">
+  <div><div class="actions" style="margin-bottom:8px"><span class="chip {{ 'overlap' if l.relationship_type == 'overlapping_proceeding' else 'plain' }}">{{ l.relationship_type.replace('_', ' ') | capitalize }}</span><span class="chip {{ l.review_status }}">{{ l.review_status.replace('_', ' ') | capitalize }}</span></div>
+    <h1>Potential case overlap</h1><p>{{ d.institution.name }} &middot; AICTE ID <span class="mono">{{ d.institution.aicte_permanent_id }}</span></p></div>
+</div>
+
+{% if ev.get('message') %}<div class="banner alert">{{ ui.icon('link') }}<div><b>Why this was flagged</b>{{ ev.message }}</div></div>{% endif %}
+
+<div class="compare" style="margin-bottom:18px">
+  {% for c in [d.a, d.b] %}
+  <article class="case-card {{ 'hidden-text' if c.restricted }}">
+    <header><div><a class="mono rowlink" href="/cases/{{ c.case_number }}">{{ c.case_number }}</a><div class="small muted">{{ c.bureau_name }}</div></div>
+      <div class="actions"><span class="tag">{{ c.bureau_code }}</span>{{ ui.status(c.status) }}</div></header>
+    <div class="body">
+      <h3 style="margin-bottom:8px;overflow-wrap:anywhere">{{ c.title }}</h3>
+      {% if c.restricted %}
+        <p class="desc">The description is held by {{ c.bureau_code }}. It becomes visible to you if this overlap is confirmed.</p>
+      {% else %}<p class="desc" style="white-space:pre-wrap;overflow-wrap:anywhere">{{ c.description }}</p>{% endif %}
+      <dl class="kv" style="margin-top:14px"><dt>Category</dt><dd>{{ c.category }}</dd><dt>Received</dt><dd>{{ c.received_at | day }}</dd>{% if not c.restricted %}<dt>Officer</dt><dd>{{ c.officer_name or 'Not assigned' }}</dd>{% endif %}</dl>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<div class="grid g-main">
+  <div class="stack">
+    <section class="card"><header><h3>Matching evidence</h3></header><div class="body">
+      <ul class="evidence-list">
+        <li class="ok">{{ ui.icon('check') }}<span><b>Institution identity:</b> verified match, both cases carry AICTE ID {{ d.institution.aicte_permanent_id }}</span></li>
+        <li class="{{ 'ok' if d.different_bureaus else 'no' }}">{{ ui.icon('check' if d.different_bureaus else 'x') }}<span><b>Bureau assignment:</b> {{ 'different bureaus (' ~ d.a.bureau_code ~ ' and ' ~ d.b.bureau_code ~ ')' if d.different_bureaus else 'same bureau' }}</span></li>
+        <li class="{{ 'ok' if ev.get('same_category') else 'no' }}">{{ ui.icon('check' if ev.get('same_category') else 'x') }}<span><b>Category:</b> {{ d.a.category ~ ' / ' ~ d.b.category if not ev.get('same_category') else 'both ' ~ d.a.category }}</span></li>
+        <li class="{{ 'ok' if d.similarity_label != 'Low' else 'no' }}">{{ ui.icon('check' if d.similarity_label != 'Low' else 'x') }}<span><b>Complaint content:</b> {{ d.similarity_label.lower() }} similarity</span></li>
+      </ul>
+      <div class="score" style="margin-top:16px">
+        <div class="s"><b>{{ ((l.score or 0) * 100) | round | int }}%</b><span>Used ({{ sc.get('mode', 'lexical') }})</span></div>
+        <div class="s"><b>{{ ((sc.get('lexical') or 0) * 100) | round | int }}%</b><span>Keyword overlap</span></div>
+        <div class="s"><b>{{ (((sc.get('semantic')) * 100) | round | int ~ '%') if sc.get('semantic') is not none else 'n/a' }}</b><span>Semantic (AI)</span></div>
+      </div>
+      <h4 style="margin:18px 0 8px">Shared terms</h4>
+      {% if ev.get('shared_terms') %}<div class="terms">{% for t in ev.shared_terms %}<span>{{ t }}</span>{% endfor %}</div>{% else %}<p class="muted small">No shared meaningful terms.</p>{% endif %}
+      <p class="small faint" style="margin-top:14px">Scores are suggestions to help prioritise review. The AI never merges, transfers or closes a case.</p>
+    </div></section>
+  </div>
+  <div class="stack">
+    <section class="card"><header><h3>Officer decision</h3></header><div class="body">
+      {% if l.review_status != 'pending' %}
+        <div class="banner {{ 'ok' if l.review_status == 'confirmed' else 'info' }}"><div><b>{{ l.review_status.replace('_', ' ') | capitalize }}</b>by {{ d.reviewer.display_name if d.reviewer else 'unknown' }}{% if l.reviewed_at %} on {{ l.reviewed_at | when }}{% endif %}</div></div>
+        <p class="small muted" style="white-space:pre-wrap"><b>Reason:</b> {{ l.reason }}</p>
+        <p class="small faint" style="margin-top:8px">This decision appears in the history of both cases.</p>
+      {% elif d.can_decide %}
+        <form method="post" action="/overlaps/{{ l.id }}/decide" class="form">
+          <label class="f">Reason for your decision <span class="hint">Required. Recorded in both cases' histories and the audit trail.</span><textarea name="reason" rows="4" required minlength="5"></textarea></label>
+          <button class="btn green block" type="submit" name="decision" value="confirmed">{{ ui.icon('check') }}Confirm overlap</button>
+          <button class="btn ghost block" type="submit" name="decision" value="related_distinct">Related, but distinct</button>
+          <button class="btn ghost block" type="submit" name="decision" value="dismissed">Dismiss</button>
+          <p class="small faint">Confirming lets both bureaus read each other's case so they can coordinate. It does not merge or change either case.</p>
+        </form>
+      {% else %}
+        <div class="banner info">{{ ui.icon('info') }}<div>Only a bureau admin of {{ d.a.bureau_code }} or {{ d.b.bureau_code }}, or a super admin, can decide this overlap.</div></div>
+      {% endif %}
+    </div></section>
+  </div>
+</div>
+{% endblock %}

@@ -1,7 +1,8 @@
 """Authentication: PIN hashing, JWT, DB-backed login, login rate-limit."""
 from __future__ import annotations
 
-import secrets
+
+import os
 import time
 from dataclasses import dataclass, field
 
@@ -20,7 +21,9 @@ class AuthError(Exception):
 
 
 def hash_pin(pin: str) -> str:
-    return bcrypt.hashpw(pin.encode(), bcrypt.gensalt()).decode()
+    # BCRYPT_ROUNDS lets the test suite run fast; production keeps the default 12.
+    rounds = int(os.environ.get("BCRYPT_ROUNDS") or 12)
+    return bcrypt.hashpw(pin.encode(), bcrypt.gensalt(rounds=rounds)).decode()
 
 
 def verify_pin(plain: str, hashed: str) -> bool:
@@ -82,41 +85,12 @@ def login(username: str, pin: str) -> LoginResult:
     u = users.get_by_username((username or "").lower().strip())
     if not u or not u.get("is_active", True):
         return LoginResult(False, error="No such account")
-    if u["role"] != "admin":
-        return LoginResult(False, error="Employees sign in with Google — use the Employee tab.")
     if not verify_pin(pin, u["pin_hash"]):
         return LoginResult(False, error="Incorrect PIN")
     return LoginResult(
         True, user=u,
         access_token=create_access_token(u),
         refresh_token=create_refresh_token(u["username"]),
-    )
-
-
-def login_with_google(email: str, display_name: str) -> LoginResult:
-    """Find-or-create a reporter by Google account email, then issue the same
-    session tokens login() issues. The row's `username` column holds the
-    lowercased email — there is no separate email column. A newly-created
-    row gets a random, never-revealed PIN hash purely to satisfy the
-    database's NOT NULL constraint; login() above refuses PIN login for any
-    non-admin role, so that hash is never checked against anything."""
-    from db import users
-    email = (email or "").strip().lower()
-    if not email:
-        return LoginResult(False, error="Google did not share an email address.")
-    u = users.get_by_username(email)
-    if u:
-        if not u.get("is_active", True):
-            return LoginResult(False, error="Account inactive")
-        if u["role"] != "reporter":
-            return LoginResult(False, error="That account signs in with a username and PIN.")
-    else:
-        u = users.create(email, display_name or email, "reporter",
-                         hash_pin(secrets.token_hex(16)), contact=email)
-    return LoginResult(
-        True, user=u,
-        access_token=create_access_token(u),
-        refresh_token=create_refresh_token(u["username"], days=30),
     )
 
 

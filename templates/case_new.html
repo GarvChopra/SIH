@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Register a case{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="/cases">Cases</a> / New</div>
+<div class="page-head"><div><h1>Register a case</h1><p>The AICTE permanent ID is how cases at the same institution are connected. A name alone is never linked automatically.</p></div></div>
+<form class="card" method="post" action="/cases/new">
+  <div class="body form">
+    <div class="row">
+      <label class="f">Institution (AICTE permanent ID)
+        <input type="text" name="aicte_id" list="inst-list" value="{{ f.get('aicte_id','') }}" placeholder="Type or pick an ID, e.g. 123456" autocomplete="off">
+        <span class="hint">Leave empty only if the complainant did not give an ID.</span>
+        <datalist id="inst-list">{% for i in institutions %}<option value="{{ i.aicte_permanent_id }}">{{ i.name }}</option>{% endfor %}</datalist></label>
+      <label class="f">Institution name as stated in the complaint
+        <input type="text" name="institution_name" value="{{ f.get('institution_name','') }}" placeholder="e.g. ABC Engg. College">
+        <span class="hint">Required if no ID is given. A suggested match then waits for human approval.</span></label>
+    </div>
+    <div class="row">
+      <label class="f">Category<select name="category" required><option value="">Choose a category</option>{% for c in categories %}<option {{ 'selected' if f.get('category') == c }}>{{ c }}</option>{% endfor %}</select></label>
+      <label class="f">Priority<select name="priority">{% for p in priorities %}<option value="{{ p }}" {{ 'selected' if (f.get('priority') or 'medium') == p }}>{{ p | capitalize }}</option>{% endfor %}</select></label>
+    </div>
+    {% if current_user.role == 'super_admin' %}
+    <label class="f">Owning bureau<select name="bureau_id" required><option value="">Choose a bureau</option>{% for b in bureaus %}<option value="{{ b.id }}" {{ 'selected' if f.get('bureau_id') == b.id|string }}>{{ b.code }} &middot; {{ b.name }}</option>{% endfor %}</select></label>
+    {% else %}
+    <div class="banner info"><div>This case will be registered under <b>{{ my_bureau.name if my_bureau else 'your bureau' }}</b>.</div></div>
+    {% endif %}
+    <label class="f">Title<input type="text" name="title" required minlength="5" maxlength="160" value="{{ f.get('title','') }}" placeholder="One-line summary"></label>
+    <label class="f">Description<textarea name="description" required minlength="5" rows="6" placeholder="What is alleged, when, and by whom?">{{ f.get('description','') }}</textarea></label>
+    <div class="actions"><button class="btn saffron" type="submit">Register case</button><a class="btn ghost" href="/cases">Cancel</a></div>
+  </div>
+</form>
+{% endblock %}

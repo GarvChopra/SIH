@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}{{ d.case.case_number }}{% endblock %}
+{% block content %}
+{% set c = d.case %}
+<div class="crumbs"><a href="/cases">Cases</a> / <span class="mono">{{ c.case_number }}</span></div>
+<div class="page-head">
+  <div style="min-width:0">
+    <div class="actions" style="margin-bottom:8px">{{ ui.status(c.status) }}{{ ui.sla(c.sla) }}{{ ui.priority(c.priority) }}{% if c.overlap %}<span class="chip overlap plain">Overlap flagged</span>{% endif %}{% if c.channel == 'citizen' and d.full %}<span class="chip plain">Citizen complaint</span>{% endif %}</div>
+    <h1 style="overflow-wrap:anywhere">{{ c.title }}</h1>
+    <p class="mono">{{ c.case_number }} &middot; {{ c.bureau_code }}</p>
+  </div>
+  <div class="actions">
+    {% if d.can_accept %}<form method="post" action="/cases/{{ c.case_number }}/accept"><button class="btn green" type="submit">{{ ui.icon('check') }}Accept transfer</button></form>{% endif %}
+    {% if d.can_assign %}<button class="btn ghost" data-open="dlg-assign">Assign officer</button>{% endif %}
+    {% if d.can_edit and d.transitions %}<button class="btn" data-open="dlg-status">Update status</button>{% endif %}
+    {% if d.can_route and c.status in ('Pending','Under Process') %}
+      <button class="btn ghost" data-open="dlg-transfer">Transfer</button>
+      <button class="btn ghost" data-open="dlg-escalate">Escalate</button>
+    {% endif %}
+    {% if d.can_request and c.status in ('Pending','Under Process') %}<button class="btn ghost" data-open="dlg-request">Request transfer / escalation</button>{% endif %}
+    {% if d.can_edit %}<button class="btn ghost" data-open="dlg-remark">Add remark</button>{% endif %}
+  </div>
+</div>
+
+{% if not d.full %}
+<div class="banner info">{{ ui.icon('info') }}<div><b>Held by {{ c.bureau_code }}</b>You can see that this case exists at the institution, but its description, remarks and documents are visible only to the owning bureau, a super admin, or a bureau with a confirmed overlap.</div></div>
+{% endif %}
+{% if c.status == 'Transferred' and d.can_accept %}<div class="banner warn">{{ ui.icon('alert') }}<div><b>Awaiting your acceptance</b>This case was transferred to your bureau. Accept it to move it to Pending and begin work.</div></div>{% endif %}
+{% if not c.institution and d.full %}<div class="banner warn">{{ ui.icon('alert') }}<div><b>Institution not linked</b>This case named "{{ c.institution_name_stated }}" without an AICTE ID, so it is excluded from overlap detection. A bureau admin can approve a suggested match under <a href="/institutions/aliases">Name matches</a>.</div></div>{% endif %}
+
+<div class="grid g-main">
+  <div class="stack">
+    {% if d.full %}
+    <section class="card"><header><h3>Description</h3>{% if d.can_edit %}<a href="#" data-open="dlg-edit" onclick="return false">Edit</a>{% endif %}</header>
+      <div class="body"><p style="white-space:pre-wrap;overflow-wrap:anywhere">{{ c.description }}</p></div></section>
+
+    <section class="card"><header><h3>Case history</h3><span class="faint small">Append-only &middot; {{ d.history | length }} entries</span></header>
+      <div class="body">
+        {% if d.history %}
+        <ol class="timeline">
+          {% for a in d.history | reverse %}
+          <li class="{{ 'ok' if a.action_type in ('disposed','transfer_accepted','overlap_confirmed') else 'bad' if a.action_type == 'escalated' else 'sf' if a.action_type.startswith('overlap') else '' }}">
+            <div class="what">{{ a.action_type.replace('_', ' ') | capitalize }}{% if a.from_value or a.to_value %} <span class="muted" style="font-weight:600">&middot; {% if a.from_value %}{{ a.from_value }} &rarr; {% endif %}{{ a.to_value or '' }}</span>{% endif %}</div>
+            <div class="when">{{ a.at | when }} &middot; {{ a.actor_name }}{% if a.bureau_code %} ({{ a.bureau_code }}){% endif %}</div>
+            {% if a.remarks %}<div class="note">{{ a.remarks }}</div>{% endif %}
+            {% for did in a.document_ids or [] %}<a class="small" href="/files/{{ did }}">Download attachment</a>{% endfor %}
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}{{ ui.empty("No history yet") }}{% endif %}
+      </div></section>
+    {% endif %}
+
+    <section class="card"><header><h3>Linked cases</h3><span class="faint small">Same institution</span></header>
+      <div class="body flush">
+        {% if d.linked %}
+        <div class="table-wrap"><table class="t"><thead><tr><th>Case</th><th>Bureau</th><th>Relationship</th><th>Similarity</th><th>Review</th></tr></thead><tbody>
+          {% for x in d.linked %}
+          <tr>
+            <td><a class="rowlink mono" href="/cases/{{ x.other.case_number }}">{{ x.other.case_number }}</a><span class="sub">{% if x.other.restricted %}Restricted summary{% else %}{{ x.other.title }}{% endif %}</span></td>
+            <td><span class="tag">{{ x.other.bureau_code }}</span><span class="sub">{{ x.other.status }}</span></td>
+            <td><span class="chip {{ 'overlap' if x.link.relationship_type == 'overlapping_proceeding' else 'plain' }}">{{ x.link.relationship_type.replace('_', ' ') | capitalize }}</span></td>
+            <td class="num">{{ ((x.link.score or 0) * 100) | round | int }}%</td>
+            <td>{% if x.link.relationship_type in ('overlapping_proceeding','possible_duplicate','related') %}<span class="chip {{ x.link.review_status }} plain">{{ x.link.review_status.replace('_', ' ') | capitalize }}</span>{% if x.evidence %} <a class="small" href="/overlaps/{{ x.link.id }}">Open</a>{% endif %}{% else %}<span class="faint small">Info only</span>{% endif %}</td>
+          </tr>{% endfor %}</tbody></table></div>
+        {% else %}{{ ui.empty("No linked cases", "No other active case at this institution is similar to this one.") }}{% endif %}
+      </div></section>
+  </div>
+
+  <div class="stack">
+    <section class="card"><header><h3>Case details</h3></header><div class="body">
+      <dl class="kv">
+        <dt>Institution</dt><dd>{% if c.institution %}<a href="/institutions/{{ c.institution.aicte_permanent_id }}">{{ c.institution.name }}</a><br><span class="faint small">AICTE ID {{ c.institution.aicte_permanent_id }}{% if c.institution.region %} &middot; {{ c.institution.region }}{% endif %}</span>{% else %}{{ c.institution_label }}{% endif %}</dd>
+        <dt>Category</dt><dd>{{ c.category }}</dd>
+        <dt>Bureau</dt><dd>{{ c.bureau_code }}</dd>
+        {% if d.full %}<dt>Officer</dt><dd>{{ c.officer_name or 'Not assigned' }}</dd>{% endif %}
+        <dt>Received</dt><dd>{{ c.received_at | day }}</dd>
+        <dt>Due by</dt><dd>{{ c.expected_disposal_at | day }} {{ ui.sla(c.sla) }}</dd>
+        {% if d.full %}
+        <dt>Last action</dt><dd>{{ c.last_action or '—' }}{% if c.last_action_at %}<br><span class="faint small">{{ c.last_action_at | when }}</span>{% endif %}</dd>
+        <dt>Next action</dt><dd>{{ c.next_action or '—' }}</dd>
+        {% endif %}
+      </dl></div></section>
+
+    {% if d.full %}
+    <section class="card"><header><h3>Documents</h3>{% if d.can_edit %}<a href="#" data-open="dlg-doc" onclick="return false">Attach</a>{% endif %}</header>
+      <div class="body">{% if d.documents %}<ul class="list-links">{% for doc in d.documents %}<li><span style="min-width:0;overflow-wrap:anywhere">{{ doc.filename }}<br><span class="faint small">{{ doc.uploaded_at | when }}</span></span><a class="btn ghost sm" href="/files/{{ doc.id }}">{{ ui.icon('download') }}Get</a></li>{% endfor %}</ul>{% else %}<p class="muted small">No documents attached.</p>{% endif %}</div></section>
+    {% if c.channel == 'citizen' and d.can_edit %}
+    <section class="card"><header><h3>Complainant</h3></header><div class="body"><p class="small muted" style="margin-bottom:10px">Filed by a registered citizen. They see status steps and any message you send here, never internal remarks.</p><button class="btn ghost block" data-open="dlg-citizen">Message the complainant</button></div></section>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{# ---------------- modals ---------------- #}
+{% if d.can_assign %}
+<dialog id="dlg-assign"><form method="post" action="/cases/{{ c.case_number }}/assign"><h3>Assign officer</h3>
+  <label class="f">Officer in {{ c.bureau_code }}<select name="officer_id" required><option value="">Choose an officer</option>{% for o in d.officers %}<option value="{{ o.id }}" {{ 'selected' if o.id == c.officer_id }}>{{ o.display_name }}</option>{% endfor %}</select></label>
+  {% if not d.officers %}<div class="banner warn"><div>This bureau has no active officers.</div></div>{% endif %}
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Assign</button></div></form></dialog>
+{% endif %}
+{% if d.can_edit and d.transitions %}
+<dialog id="dlg-status"><form method="post" action="/cases/{{ c.case_number }}/status"><h3>Update status</h3>
+  <label class="f">New status<select name="to" required>{% for s in d.transitions %}<option>{{ s }}</option>{% endfor %}</select></label>
+  <label class="f">Remarks <span class="hint">Required to dispose or reopen. Internal: the complainant does not see this.</span><textarea name="remarks" rows="3"></textarea></label>
+  {% if c.channel == 'citizen' %}<label class="f">Outcome message for the complainant <span class="hint">Required when disposing a citizen's complaint. Written in plain language; this is what they will read.</span><textarea name="citizen_message" rows="3"></textarea></label>{% endif %}
+  {% if c.status != 'Disposed' and not c.officer_name %}<div class="banner warn"><div>Under Process needs an assigned officer.</div></div>{% endif %}
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Save</button></div></form></dialog>
+{% endif %}
+{% if d.can_route %}
+<dialog id="dlg-transfer"><form method="post" action="/cases/{{ c.case_number }}/transfer"><h3>Transfer to another bureau</h3>
+  <label class="f">Receiving bureau<select name="to_bureau" required><option value="">Choose a bureau</option>{% for b in d.bureaus %}<option value="{{ b.id }}">{{ b.code }} &middot; {{ b.name }}</option>{% endfor %}</select></label>
+  <label class="f">Reason<textarea name="remarks" rows="3"></textarea></label>
+  <div class="banner info"><div>The receiving bureau takes ownership and must accept the transfer.</div></div>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Transfer</button></div></form></dialog>
+<dialog id="dlg-escalate"><form method="post" action="/cases/{{ c.case_number }}/escalate"><h3>Escalate for senior review</h3>
+  <label class="f">Why is this being escalated?<textarea name="remarks" rows="4" required></textarea></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn danger" type="submit">Escalate</button></div></form></dialog>
+{% endif %}
+{% if d.can_request %}
+<dialog id="dlg-request"><form method="post" action="/cases/{{ c.case_number }}/request"><h3>Request transfer or escalation</h3>
+  <label class="f">Request<select name="kind"><option value="transfer">Transfer to another bureau</option><option value="escalation">Escalate for senior review</option></select></label>
+  <label class="f">Reason<textarea name="remarks" rows="4" required></textarea></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Send request</button></div></form></dialog>
+{% endif %}
+{% if d.can_edit %}
+<dialog id="dlg-remark"><form method="post" action="/cases/{{ c.case_number }}/remark"><h3>Add internal remark</h3>
+  <label class="f">Remark <span class="hint">Visible to your bureau and super admins only.</span><textarea name="remarks" rows="4" required></textarea></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Add remark</button></div></form></dialog>
+<dialog id="dlg-doc"><form method="post" action="/cases/{{ c.case_number }}/document" enctype="multipart/form-data"><h3>Attach documents</h3>
+  <label class="f">Files <span class="hint">PDF, images, TXT, DOC(X). Up to 5 MB each.</span><input type="file" name="files" multiple required></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Upload</button></div></form></dialog>
+<dialog id="dlg-edit"><form method="post" action="/cases/{{ c.case_number }}/edit"><h3>Edit title and description</h3>
+  <label class="f">Title<input type="text" name="title" value="{{ c.title }}" required></label>
+  <label class="f">Description<textarea name="description" rows="7" required>{{ c.description }}</textarea></label>
+  <div class="banner info"><div>Editing the text re-runs overlap detection. A previously dismissed pair is only re-raised if the text changes.</div></div>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Save</button></div></form></dialog>
+{% if c.channel == 'citizen' %}
+<dialog id="dlg-citizen"><form method="post" action="/cases/{{ c.case_number }}/citizen-update"><h3>Message the complainant</h3>
+  <label class="f">Message <span class="hint">The complainant will see this on their tracking page and in notifications. Do not include internal details.</span><textarea name="message" rows="4" required></textarea></label>
+  <div class="dlg-actions"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit">Send</button></div></form></dialog>
+{% endif %}
+{% endif %}
+{% endblock %}

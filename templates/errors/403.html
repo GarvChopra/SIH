@@ -1,64 +1,10 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b284f">
-  <title>Access restricted &middot; UNIFIX</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <style>
-    .e-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
-    .e-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
-      max-width:400px;width:100%;padding:28px 24px;text-align:center}
-    .e-badge{width:52px;height:52px;border-radius:14px;margin:0 auto 16px;display:grid;place-items:center;
-      background:var(--navy-soft);color:var(--navy)}
-    .e-badge svg{width:26px;height:26px}
-    .e-card h1{font-size:19px;margin:0 0 6px}
-    .e-card p{color:var(--muted);font-size:13.5px;margin:0 0 18px;line-height:1.5}
-    .e-card .btn + .btn{margin-top:10px}
-    .e-reset{margin-top:18px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;
-      font-weight:600;cursor:pointer;text-decoration:underline}
-  </style>
-</head>
-<body>
-  <div class="e-wrap">
-    <div class="e-card">
-      <div class="e-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-      </div>
-      {% if user and admin_area %}
-        <h1>Admin access required</h1>
-        <p>You're signed in as <b>{{ user.display_name }}</b>, a faculty account.
-           The admin portal is for campus coordinators only.</p>
-        <a class="btn navy" href="/">Go to UNIFIX</a>
-        <a class="btn ghost" href="/logout">Sign in as a different user</a>
-      {% elif user %}
-        <h1>Access restricted</h1>
-        <p>You don't have permission to open this page.</p>
-        <a class="btn navy" href="/">Back to UNIFIX</a>
-      {% else %}
-        <h1>Your session has ended</h1>
-        <p>Please sign in again to continue.</p>
-        <a class="btn navy" href="/login">Sign in</a>
-      {% endif %}
-      <button type="button" class="e-reset" id="e-reset">Still stuck? Reset app data</button>
-    </div>
-  </div>
-  <script>
-    document.getElementById("e-reset").addEventListener("click", async () => {
-      try {
-        if ("serviceWorker" in navigator) {
-          const rs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(rs.map((r) => r.unregister()));
-        }
-        if (window.caches) {
-          const ks = await caches.keys();
-          await Promise.all(ks.map((k) => caches.delete(k)));
-        }
-      } catch (e) { /* best effort */ }
-      location.replace("/login");
-    });
-  </script>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access restricted &middot; SAMANVAY</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/samanvay.css') }}"></head>
+<body><div class="tri"></div>
+<div class="auth-card-wrap" style="min-height:calc(100dvh - 4px)"><div class="auth-card"><div class="card" style="text-align:center">
+  <h1>Access restricted</h1>
+  <p class="muted" style="margin:8px 0 18px">Your account does not have permission to open this page.</p>
+  <a class="btn" href="/">Back to home</a>
+</div></div></div></body></html>

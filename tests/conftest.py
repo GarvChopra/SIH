@@ -2,44 +2,40 @@ import os
 
 import pytest
 
-# Keep the test suite fully offline, in development mode, and on the in-memory
-# store. config.py calls load_dotenv(override=False) on import, so any real
-# credential left unset here would be pulled in from .env and make tests hit
-# live services (Neon, Groq, Resend). Setting each to "" (not pop) blocks that —
-# load_dotenv won't override a key that is already present, even if it is empty.
+# Keep the suite offline, in development mode, on the in-memory store, with no AI
+# key. config.py calls load_dotenv(override=False) on import, so any real
+# credential left unset here would be pulled in from .env and make tests hit live
+# services. Setting each to "" (not pop) blocks that.
 os.environ["APP_ENV"] = "development"
-for _k in ("DATABASE_URL", "GROQ_API_KEY", "RESEND_API_KEY", "IMAGEKIT_PRIVATE_KEY",
-           "FIREBASE_KEY_JSON", "FIREBASE_CREDENTIALS_B64",
-           "FIREBASE_SERVICE_ACCOUNT_JSON", "GOOGLE_APPLICATION_CREDENTIALS",
-           "R2_ACCOUNT_ID", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET_NAME",
-           "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "S3_BUCKET_NAME",
-           "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PIN",
-           "ALLOW_PROD_DEMO_SEED", "SEED_DEMO", "FLASK_DEBUG",
-           "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"):
+for _k in ("DATABASE_URL", "COHERE_API_KEY", "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PIN",
+           "ALLOW_PROD_DEMO_SEED", "FLASK_DEBUG", "FIREBASE_KEY_JSON",
+           "FIREBASE_CREDENTIALS_B64", "FIREBASE_SERVICE_ACCOUNT_JSON",
+           "GOOGLE_APPLICATION_CREDENTIALS"):
     os.environ[_k] = ""
-# Pinned (not blanked) so the college-domain restriction tests are deterministic
-# regardless of what a real .env sets.
-os.environ["GOOGLE_ALLOWED_EMAIL_DOMAIN"] = "glbitm.ac.in"
+# tests start from an empty case register; the dataset has its own tests
+os.environ["SEED_DEMO_DATA"] = "0"
+os.environ["BCRYPT_ROUNDS"] = "4"      # fast hashing in tests
 
 
 @pytest.fixture(autouse=True)
-def _reset_process_state():
-    """Clear module-level caches that would otherwise leak between tests."""
+def _reset_process_state(tmp_path, monkeypatch):
     from db import pool
-    from services import auth_service, dashboard_service
+    from services import auth_service, file_service
     auth_service._ATTEMPTS.clear()
-    dashboard_service._ALERT_CACHE.update(t=0.0, v=[])
+    monkeypatch.setattr(file_service, "UPLOAD_DIR", str(tmp_path / "uploads"))
     yield
     auth_service._ATTEMPTS.clear()
-    dashboard_service._ALERT_CACHE.update(t=0.0, v=[])
     pool.reset_memory_store()
 
 
 @pytest.fixture()
 def memstore():
-    """Fresh in-memory persistence store — for db-layer tests that don't need the web app."""
-    from db import pool
+    """Fresh in-memory store (bureaus + demo accounts seeded), no web app."""
+    from db import pool, seeds
     pool.reset_memory_store()
+    seeds.seed_essential()
+    seeds.seed_demo_accounts()
+    seeds.seed_demo_citizen()
     return pool.STATE
 
 
@@ -47,7 +43,7 @@ def memstore():
 def app():
     from app import create_app
     from db import pool
-    pool.reset_memory_store()          # fresh dict store per test
+    pool.reset_memory_store()
     application = create_app()
     application.config.update(TESTING=True)
     return application
@@ -56,3 +52,41 @@ def app():
 @pytest.fixture()
 def client(app):
     return app.test_client()
+
+
+def login(client, username, pin="1234"):
+    r = client.post("/login", data={"username": username, "pin": pin})
+    assert r.status_code == 302, r.data[:300]
+    return client
+
+
+@pytest.fixture()
+def login_as(app):
+    """login_as('pgrc.officer') -> a fresh logged-in test client."""
+    def _make(username, pin="1234"):
+        c = app.test_client()
+        login(c, username, pin)
+        return c
+    return _make
+
+
+@pytest.fixture()
+def actor(memstore):
+    """actor('rb.admin') -> the session-user dict the services expect."""
+    from db import users
+
+    def _get(username):
+        u = users.get_by_username(username)
+        return {"id": u["id"], "username": u["username"], "display_name": u["display_name"],
+                "role": u["role"], "bureau_id": u["bureau_id"], "region": u["region"],
+                "department": u["department"]}
+    return _get
+
+
+@pytest.fixture()
+def inst(memstore):
+    """Two institutions; returns the ABC Engineering College row."""
+    from db import institutions
+    abc = institutions.create("123456", "ABC Engineering College", "Greater Noida", "North")
+    institutions.create("654321", "Southern Institute of Technology", "Chennai", "South")
+    return abc

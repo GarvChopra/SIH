@@ -2,122 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e2f5c">
-  <title>Sign in &middot; UNIFIX</title>
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1f4a">
+  <title>Sign in &middot; SAMANVAY</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/samanvay.css') }}">
 </head>
 <body>
+<div class="tri"></div>
 <div class="auth-wrap">
-  <div class="auth-hero">
-    <img src="{{ url_for('static', filename='img/glb-logo.webp') }}" alt="GL Bajaj">
-    <b id="brandline">UNIFIX</b>
-    <span>GL Bajaj Institute of Technology &amp; Management</span>
-  </div>
-
-  <div class="auth-card" style="max-width:440px;margin:0 auto">
-    <h1 id="welcome">Welcome back</h1>
-    <p class="sub" id="portal">Campus Grievance &amp; Infrastructure Portal</p>
-
-    <div class="seg" role="tablist">
-      <button type="button" class="on" id="seg-faculty" onclick="segTo('faculty')">Employee</button>
-      <button type="button" id="seg-admin" onclick="segTo('admin')">Admin</button>
+  <section class="auth-hero">
+    <div class="logo"><div class="emblem">S</div><div><b style="font-size:20px;letter-spacing:1px">SAMANVAY</b><div class="small" style="color:#c7d4ef">AICTE Integrated Complaint Monitoring</div></div></div>
+    <div>
+      <h2>One view of every complaint against an institution, across every AICTE bureau.</h2>
+      <p>Track cases, spot overlapping investigations early, and coordinate action without duplicating work.</p>
+      <ul>
+        <li>Citizens file and track complaints against AICTE-approved institutions</li>
+        <li>Bureaus see who else is already handling the same institution</li>
+        <li>AI suggests overlaps; officials review and decide</li>
+      </ul>
     </div>
-
-    {% if error %}<p class="error" style="margin-bottom:12px">{{ error }}</p>{% endif %}
-
-    <div id="employee-block">
-      <p style="margin:22px 0"><a class="btn" href="/auth/google/login">Sign in with Google</a></p>
-      <p class="tiny muted" id="hint" style="text-align:center">
-        Sign in with your college Google account. Your first sign-in creates your account automatically.</p>
-    </div>
-
-    <div id="admin-block" hidden>
-      <form method="post" action="/login">
-        <label for="username" id="ul">Admin ID</label>
-        <input id="username" name="username" autocomplete="username" required placeholder="admin">
-        <label for="pin">PIN</label>
-        <input id="pin" name="pin" type="password" inputmode="numeric"
-               autocomplete="current-password" required placeholder="••••">
-        <label class="check"><input type="checkbox" name="remember" value="1"> Remember me on this device</label>
-        <p style="margin-top:18px"><button type="submit" class="btn">Sign in</button></p>
-      </form>
-      <p class="tiny muted" style="text-align:center;margin-top:14px">Secure &middot; Transparent &middot; Efficient</p>
-    </div>
-
-    <a class="get-app-banner" href="/get-app">
-      <span class="get-app-banner__icon" aria-hidden="true">&#128241;</span>
-      <span class="get-app-banner__txt">
-        <b>Install the UNIFIX app</b>
-        <span>Add it to your home screen &mdash; opens like an app, works offline</span>
-      </span>
-      <span class="get-app-banner__arr" aria-hidden="true">&rarr;</span>
-    </a>
-  </div>
-
-  <p class="auth-foot">Together for a cleaner, safer &amp; smarter GL Bajaj campus</p>
-</div>
-
-<div class="pwa-modal" id="pwa-install-modal" hidden>
-  <div class="pwa-modal__card" role="dialog" aria-modal="true" aria-labelledby="pwa-modal-t">
-    <button type="button" class="pwa-modal__x" id="pwa-modal-x" aria-label="Close">&times;</button>
-    <div class="pwa-modal__id">
-      <span class="get-app-banner__icon" aria-hidden="true">&#128241;</span>
-      <div>
-        <b id="pwa-modal-t">Install the UNIFIX app</b>
-        <span>Add it to your home screen &mdash; opens like an app, works offline</span>
+    <div class="small" style="color:#9fb2d8">Prototype with synthetic data. Not an official AICTE system.</div>
+  </section>
+  <section class="auth-card-wrap">
+    <div class="auth-card">
+      <div class="card">
+        <h1 style="margin-bottom:4px">Sign in</h1>
+        <p class="muted" style="margin-bottom:18px">AICTE officials and registered complainants</p>
+        {% if error %}<div class="banner err" role="alert"><div>{{ error }}</div></div>{% endif %}
+        <form method="post" action="/login" class="form">
+          <label class="f">Username<input id="username" name="username" type="text" autocomplete="username" required autofocus></label>
+          <label class="f">PIN or password<input id="pin" name="pin" type="password" autocomplete="current-password" required></label>
+          <label class="check"><input type="checkbox" name="remember" value="1"> Keep me signed in on this device</label>
+          <button class="btn block" type="submit">Sign in</button>
+        </form>
+        <p class="small muted" style="margin-top:16px;text-align:center">Filing a complaint? <a href="/register"><b>Create a complainant account</b></a></p>
       </div>
+      {% if demo %}
+      <details class="demo-box" open>
+        <summary>Demo accounts (synthetic) &mdash; click a username to fill</summary>
+        <table><tbody>
+          {% for a in demo %}
+          <tr><td><button type="button" data-fill-user="{{ a.username }}" data-fill-pin="{{ a.pin }}">{{ a.username }}</button></td><td>{{ a.name }}</td><td class="faint">{{ a.role.replace('_', ' ') }}{% if a.bureau %} &middot; {{ a.bureau }}{% endif %}</td></tr>
+          {% endfor %}
+          <tr><td><button type="button" data-fill-user="citizen.demo" data-fill-pin="citizen123">citizen.demo</button></td><td>Aarav Sharma</td><td class="faint">citizen</td></tr>
+        </tbody></table>
+        <p class="tiny faint" style="margin-top:8px">Officials: PIN <b>{{ demo[0].pin }}</b> &middot; citizen.demo: password <b>citizen123</b></p>
+      </details>
+      {% endif %}
     </div>
-    <a class="btn" href="/get-app" id="pwa-modal-go">Install the app</a>
-    <div class="pwa-modal__foot">
-      <button type="button" id="pwa-modal-dismiss">Open UNIFIX in your browser</button>
-    </div>
-  </div>
+  </section>
 </div>
-
-<script>
-(function(){
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js");
-  }
-  var DISMISS_KEY = "unifix_pwa_dismiss";
-  var modal = document.getElementById("pwa-install-modal");
-
-  function installed(){
-    return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  }
-  function dismissed(){
-    try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch (e) { return false; }
-  }
-  function remember(){
-    try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) {}
-  }
-  function close(){ modal.hidden = true; }
-
-  document.getElementById("pwa-modal-x").addEventListener("click", function(){ remember(); close(); });
-  document.getElementById("pwa-modal-dismiss").addEventListener("click", function(){ remember(); close(); });
-  document.getElementById("pwa-modal-go").addEventListener("click", remember);
-  modal.addEventListener("click", function(e){ if (e.target === modal) close(); });
-
-  if (!installed() && !dismissed()) {
-    modal.hidden = false;
-  }
-})();
-
-function segTo(w){
-  const admin = w === 'admin';
-  document.getElementById('seg-faculty').classList.toggle('on', !admin);
-  document.getElementById('seg-admin').classList.toggle('on', admin);
-  document.body.classList.toggle('admin-login', admin);
-  document.getElementById('employee-block').hidden = admin;
-  document.getElementById('admin-block').hidden = !admin;
-  document.getElementById('brandline').textContent = admin ? 'UNIFIX Admin' : 'UNIFIX';
-  document.getElementById('welcome').textContent = admin ? 'Admin sign-in' : 'Welcome back';
-  document.getElementById('portal').textContent = admin
-    ? 'Campus Super Admin Portal' : 'Campus Grievance & Infrastructure Portal';
-}
-</script>
+<script src="{{ url_for('static', filename='js/shell.js') }}" defer></script>
 </body>
 </html>

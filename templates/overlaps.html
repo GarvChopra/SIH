@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Overlap review{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Overlap review</h1><p>Complaints at the same institution that may describe the same issue. The system only suggests; an official decides.</p></div>
+  <div class="pill-nav"><a href="/overlaps" class="{{ 'on' if tab == 'pending' }}">Needs review</a><a href="/overlaps?tab=decided" class="{{ 'on' if tab == 'decided' }}">Decided</a></div>
+</div>
+<div class="card"><div class="body flush">
+{% if rows %}
+<div class="table-wrap"><table class="t"><thead><tr><th>Institution</th><th>Cases</th><th>Bureaus</th><th>Type</th><th class="num">Similarity</th><th>{{ 'Decision' if tab == 'decided' else 'Shared terms' }}</th><th></th></tr></thead><tbody>
+{% for r in rows %}{% set l = r.link %}{% set ev = l.evidence or {} %}
+<tr>
+ <td><a class="rowlink" href="/institutions/{{ r.institution.aicte_permanent_id }}">{{ r.institution.name }}</a><span class="sub">ID {{ r.institution.aicte_permanent_id }}</span></td>
+ <td><span class="mono">{{ r.a.case_number }}</span><br><span class="mono">{{ r.b.case_number }}</span></td>
+ <td><span class="tag">{{ r.bureau_a }}</span> <span class="tag">{{ r.bureau_b }}</span></td>
+ <td><span class="chip {{ 'overlap' if l.relationship_type == 'overlapping_proceeding' else 'plain' }}">{{ l.relationship_type.replace('_', ' ') | capitalize }}</span></td>
+ <td class="num">{{ ((l.score or 0) * 100) | round | int }}%<span class="sub">{{ ev.get('scores', {}).get('mode', '') }}</span></td>
+ <td>{% if tab == 'decided' %}<span class="chip {{ l.review_status }}">{{ l.review_status.replace('_', ' ') | capitalize }}</span><span class="sub">{{ r.reviewer.display_name if r.reviewer else '' }}</span>
+     {% else %}<div class="terms">{% for t in (ev.get('shared_terms') or [])[:4] %}<span>{{ t }}</span>{% endfor %}</div>{% endif %}</td>
+ <td class="right"><a class="btn {{ 'saffron' if tab == 'pending' else 'ghost' }} sm" href="/overlaps/{{ l.id }}">{{ 'Review' if tab == 'pending' else 'View' }}</a></td>
+</tr>{% endfor %}
+</tbody></table></div>
+{% else %}{{ ui.empty("Nothing here", "No overlaps " ~ ("waiting for review involve your bureau." if tab == 'pending' else "have been decided yet.")) }}{% endif %}
+</div></div>
+{% endblock %}

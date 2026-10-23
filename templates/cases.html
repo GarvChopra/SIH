@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Cases{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Case register</h1><p>{{ rows | length }} case{{ '' if rows | length == 1 else 's' }} shown. Cases held by other bureaus appear as restricted summaries.</p></div>
+  <div class="actions">{% if can("complaint.create") %}<a class="btn saffron" href="/cases/new">{{ ui.icon('plus') }}New case</a>{% endif %}</div>
+</div>
+
+<form class="card" method="get" action="/cases" style="margin-bottom:18px">
+  <div class="body">
+    <div class="filters">
+      <label class="f f-wide">Search<input type="search" name="q" value="{{ f.get('q','') }}" placeholder="Case no., institution, title or text"></label>
+      <label class="f">Institution<input type="text" name="institution" value="{{ f.get('institution','') }}" placeholder="Name contains"></label>
+      <label class="f">AICTE ID<input type="text" name="aicte_id" value="{{ f.get('aicte_id','') }}" placeholder="e.g. 123456"></label>
+      <label class="f">Case number<input type="text" name="case_number" value="{{ f.get('case_number','') }}" placeholder="AICTE-CMP-"></label>
+      <label class="f">Bureau<select name="bureau"><option value="">All bureaus</option>{% for b in bureaus %}<option value="{{ b.id }}" {{ 'selected' if f.get('bureau') == b.id|string or f.get('bureau') == b.code }}>{{ b.code }} &middot; {{ b.name }}</option>{% endfor %}</select></label>
+      <label class="f">Region<select name="region"><option value="">All regions</option>{% for r in regions %}<option {{ 'selected' if f.get('region') == r }}>{{ r }}</option>{% endfor %}</select></label>
+      <label class="f">Category<select name="category"><option value="">All categories</option>{% for c in categories %}<option {{ 'selected' if f.get('category') == c }}>{{ c }}</option>{% endfor %}</select></label>
+      <label class="f">Status<select name="status"><option value="">Any status</option>{% for s in statuses %}<option {{ 'selected' if f.get('status') == s }}>{{ s }}</option>{% endfor %}</select></label>
+      <label class="f">Officer<select name="officer"><option value="">Any officer</option>{% for o in officers %}<option value="{{ o.id }}" {{ 'selected' if f.get('officer') == o.id|string }}>{{ o.display_name }}</option>{% endfor %}</select></label>
+      <label class="f">Deadline<select name="deadline"><option value="">Any</option>{% for k, v in [('on_track','On track'),('due_soon','Due soon'),('overdue','Overdue')] %}<option value="{{ k }}" {{ 'selected' if f.get('deadline') == k }}>{{ v }}</option>{% endfor %}</select></label>
+      <label class="f">Received from<input type="date" name="date_from" value="{{ f.get('date_from','') }}"></label>
+      <label class="f">Received to<input type="date" name="date_to" value="{{ f.get('date_to','') }}"></label>
+      <label class="check" style="padding-bottom:10px"><input type="checkbox" name="overlap" value="1" {{ 'checked' if f.get('overlap') in ('1','true','yes') }}> Overlap flagged only</label>
+    </div>
+    <div class="actions" style="margin-top:14px"><button class="btn" type="submit">Apply filters</button><a class="btn ghost" href="/cases">Clear</a></div>
+  </div>
+</form>
+
+<div class="card"><div class="body flush">{{ ui.case_table(rows) }}</div></div>
+{% endblock %}

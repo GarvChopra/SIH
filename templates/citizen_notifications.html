@@ -1,0 +1,15 @@
+{% extends "citizen_base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Notifications</h1><p>Updates on your complaints.</p></div>
+ <div class="actions">{% if c_unread %}<form method="post" action="/my/notifications/read"><button class="btn ghost" type="submit">Mark all read</button></form>{% endif %}</div></div>
+<div class="card">
+{% for n in rows %}
+ <div class="notif {{ 'unread' if not n.read_at else 'read' }}"><span class="dot"></span>
+  <div style="flex:1;min-width:0"><div style="overflow-wrap:anywhere">{{ n.message }}</div>
+   <div class="faint small">{{ n.created_at | when }}{% if n.case_number %} &middot; <a class="mono" href="/my/c/{{ n.case_number }}">View complaint</a>{% endif %}</div></div>
+  {% if not n.read_at %}<form method="post" action="/my/notifications/read"><input type="hidden" name="id" value="{{ n.id }}"><button class="btn ghost sm" type="submit">Mark read</button></form>{% endif %}</div>
+{% else %}<div class="body">{{ ui.empty("No notifications yet") }}</div>{% endfor %}
+</div>
+{% endblock %}

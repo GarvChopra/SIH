@@ -19,10 +19,11 @@ import logging
 import os
 import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 
 from config import Config
 
-log = logging.getLogger("unifix.db")
+log = logging.getLogger("samanvay.db")
 
 _PG_OK = False
 try:
@@ -53,21 +54,13 @@ except ImportError:
     firestore = None
 
 _MEM_TABLES = (
-    "users", "locations", "grievances", "evidence",
-    "timeline_events", "recurring_groups", "notices", "audit_log",
+    "users", "bureaus", "institutions", "institution_aliases", "complaints",
+    "case_actions", "case_links", "complaint_embeddings", "notifications",
+    "documents", "audit_log",
 )
 
-# table name -> the next_seq() name each db/*.py module actually uses for "id"
-_ID_SEQ_NAME = {
-    "users": "users",
-    "locations": "locations",
-    "grievances": "grievance_id",
-    "evidence": "evidence",
-    "timeline_events": "timeline",
-    "recurring_groups": "recurring",
-    "notices": "notice",
-    "audit_log": "audit",
-}
+# table name -> the next_seq() name each db module uses for "id"
+_ID_SEQ_NAME = {t: t for t in _MEM_TABLES}
 
 STATE = {"mode": "memory", "mem": {}, "seq": {}, "firestore_db": None}
 
@@ -89,19 +82,59 @@ def is_firestore() -> bool:
     return STATE["mode"] == "firestore"
 
 
+_TX: ContextVar = ContextVar("samanvay_tx", default=None)
+
+
 @contextmanager
 def connection():
     """A short-lived psycopg connection, closed when the caller is done.
 
-    Callers `conn.commit()` explicitly after writes (unchanged); an
-    uncommitted transaction is rolled back by `conn.close()`.
+    Inside `transaction()` every caller shares the transaction's connection, and
+    `commit()` becomes a no-op until the transaction block exits.
     """
     if STATE["mode"] != "postgres":
         raise RuntimeError("pool.connection() called outside postgres mode")
+    shared = _TX.get()
+    if shared is not None:
+        yield shared
+        return
     conn = psycopg.connect(Config.DATABASE_URL, **_CONNECT_KWARGS)
     try:
         yield conn
     finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def commit(conn) -> None:
+    """Commit unless a surrounding `transaction()` owns the commit."""
+    if _TX.get() is None:
+        conn.commit()
+
+
+@contextmanager
+def transaction():
+    """Make several db calls atomic.
+
+    PostgreSQL: one connection, one COMMIT at the end, ROLLBACK on any exception.
+    In-memory/Firestore mode there is nothing to roll back, so callers validate
+    before they mutate; this is then a plain pass-through.
+    """
+    if STATE["mode"] != "postgres" or _TX.get() is not None:
+        yield
+        return
+    conn = psycopg.connect(Config.DATABASE_URL, **_CONNECT_KWARGS)
+    token = _TX.set(conn)
+    try:
+        yield
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        _TX.reset(token)
         try:
             conn.close()
         except Exception:  # noqa: BLE001
@@ -181,15 +214,14 @@ def _restore_sequences() -> None:
         if ids:
             STATE["seq"][seq_name] = max(STATE["seq"].get(seq_name, 0), max(ids))
 
-    # grievances also has a separate "grievance" sequence that drives the
-    # human-readable code (e.g. GLB-CAMP-00124) — recover it from existing codes.
+    # complaint case numbers (AICTE-CMP-00123) are driven by a separate sequence
     nums = []
-    for row in STATE["mem"].get("grievances", []):
-        digits = "".join(ch for ch in str(row.get("code", "")) if ch.isdigit())
+    for row in STATE["mem"].get("complaints", []):
+        digits = "".join(ch for ch in str(row.get("case_number", "")) if ch.isdigit())
         if digits:
             nums.append(int(digits))
     if nums:
-        STATE["seq"]["grievance"] = max(STATE["seq"].get("grievance", 0), max(nums))
+        STATE["seq"]["case_number"] = max(STATE["seq"].get("case_number", 0), max(nums))
 
 
 def flush_to_firestore() -> None:
@@ -267,7 +299,7 @@ def init_db() -> None:
     # 3) Neither backend is available.
     if Config.is_production():
         raise RuntimeError(
-            "UNIFIX cannot start: PostgreSQL is unavailable and no Firestore "
+            "SAMANVAY cannot start: PostgreSQL is unavailable and no Firestore "
             "fallback is configured. In-memory storage is NEVER used in "
             "production because it silently loses data. Fix DATABASE_URL / "
             "database connectivity (or configure Firestore) and redeploy."
