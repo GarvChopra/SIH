@@ -19,7 +19,7 @@
         <div class="top-row"><span class="mono" style="font-weight:800;color:var(--navy-800)">{{ r.case_number }}</span>{{ ui.status(r.status) }}</div>
         <div class="ttl">{{ r.title }}</div>
         <div class="small muted">{{ r.institution_name }} &middot; {{ r.category }} &middot; filed {{ r.received_at | day }}</div>
-        <div class="mini-track" aria-label="Progress: {{ r.status_label }}">{% for i in range(4) %}<i class="{{ 'on' if i < r.step else 'now' if i == r.step else '' }}"></i>{% endfor %}</div>
+        <div class="mini-track" aria-label="Progress: {{ r.status_label }}">{% for i in range(4) %}<i class="{{ 'on' if (i < r.step or r.status == 'Disposed') else 'now' if i == r.step else '' }}"></i>{% endfor %}</div>
       </a>
     {% else %}
       <div class="body">{{ ui.empty("No complaints yet", "When you file one it will appear here with its tracking ID.") }}<div style="text-align:center;margin-top:10px"><a class="btn" href="/my/new">File your first complaint</a></div></div>

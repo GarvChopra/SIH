@@ -231,11 +231,15 @@ def _advance(rng, now, c, outcome):
         cs.change_status(who, c["id"], "Disposed", rng.choice(OUTCOMES), msg)
 
 
-def _pick_outcome(rng, age_days):
+def _pick_outcome(rng, age_days, sla_days):
+    """Older cases are mostly closed; only a few are left to run past their deadline."""
     weights = [("pending", 20), ("under_process", 27), ("escalated", 6), ("transferred", 5),
                ("transferred_accepted", 7), ("disposed", 35)]
     if age_days < 12:
         weights = [("pending", 60), ("under_process", 40)]
+    elif age_days > sla_days * 0.8:
+        weights = [("disposed", 58), ("under_process", 16), ("escalated", 9), ("pending", 6),
+                   ("transferred", 6), ("transferred_accepted", 5)]
     r = rng.uniform(0, sum(w for _, w in weights))
     for name, w in weights:
         r -= w
@@ -360,7 +364,8 @@ def build(seed: int = 7) -> dict:
             code = rng.choice(options)
             c = _file(rng, now, ago, inst[aid], cat, code)
             use(aid, cat)
-            _advance(rng, now, c, _pick_outcome(rng, ago))
+            from domain.constants import SLA_DAYS
+            _advance(rng, now, c, _pick_outcome(rng, ago, SLA_DAYS[cat]))
             made["random"] += 1
 
         # ---------- citizens ----------

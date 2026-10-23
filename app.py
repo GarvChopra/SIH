@@ -49,6 +49,9 @@ def create_app() -> Flask:
     from blueprints.citizen import bp as citizen_bp
     app.register_blueprint(citizen_bp)
 
+    from blueprints.api import bp as api_bp
+    app.register_blueprint(api_bp)
+
     from blueprints.portal import bp as portal_bp
     app.register_blueprint(portal_bp)
 
@@ -65,6 +68,9 @@ def create_app() -> Flask:
             return
 
         access = request.cookies.get("up_access")
+        bearer = request.headers.get("Authorization", "")
+        if bearer.lower().startswith("bearer "):            # mobile / API clients
+            access = bearer[7:].strip()
         username = None
         try:
             if access:

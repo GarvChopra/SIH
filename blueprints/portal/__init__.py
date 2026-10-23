@@ -39,7 +39,8 @@ def _shell_context():
     out["my_bureau"] = bureaus.get(user.get("bureau_id")) if user.get("bureau_id") else None
     try:
         if rbac.has_permission(user["role"], rbac.ALIAS_REVIEW):
-            out["nav_counts"]["aliases"] = len(institution_service.pending_suggestions(user))
+            out["nav_counts"]["aliases"] = len({r["complaint"]["id"] for r in
+                                                   institution_service.pending_suggestions(user)})
         from services import overlap_service
         out["nav_counts"]["overlaps"] = len(overlap_service.review_queue(user))
     except Exception:  # noqa: BLE001 - page chrome must never 500

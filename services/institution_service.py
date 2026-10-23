@@ -20,7 +20,7 @@ _ABBREV = {"engg": "engineering", "eng": "engineering", "coll": "college",
            "univ": "university", "tech": "technology", "mgmt": "management",
            "mgt": "management", "&": "and", "dept": "department"}
 _STOP = {"the", "of", "and", "for", "a", "an", "in"}
-SUGGEST_MIN = 0.55
+SUGGEST_MIN = 0.65
 
 
 def normalize_name(name: str) -> list:

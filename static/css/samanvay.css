@@ -328,8 +328,12 @@ dialog .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px
   .page-head h1{font-size:19px}
   .g2,.g3{grid-template-columns:minmax(0,1fr)}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .c-top nav a{padding:8px 9px;font-size:13px}
+  .c-top .in{height:auto;flex-wrap:wrap;padding:8px 14px 6px;row-gap:2px}
+  .c-top nav{order:9;width:100%;margin:0 -6px}
+  .c-top nav a{padding:8px 10px;font-size:13px}
   .c-top .out span{display:none}
+  .hero-cta{padding:20px}
+  .track-id{font-size:18px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
